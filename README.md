@@ -1,4 +1,4 @@
-# dms_functional_safety
+# 기능안전 기반 스마트 DMS
 
 ![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.13-3776AB?logo=python&logoColor=white)
 ![C](https://img.shields.io/badge/C-FreeRTOS-A8B9CC?logo=c&logoColor=black)
