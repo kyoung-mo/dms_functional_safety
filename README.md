@@ -1,4 +1,7 @@
-# 기능안전 기반 스마트 DMS
+# 기능안전 기반 스마트 DMS (진행 중)
+
+> RPi5 + Hailo-8 NPU + STM32(FreeRTOS) + CAN 기반 졸음 감지 · 실시간 안전 제어 분리형 운전자 모니터링 시스템  
+> Intel AI SW Academy 9기 3차 프로젝트 (2026.06)
 
 ![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.13-3776AB?logo=python&logoColor=white)
 ![C](https://img.shields.io/badge/C-FreeRTOS-A8B9CC?logo=c&logoColor=black)
@@ -23,7 +26,7 @@
 
 ## 핵심 차별점
 
-졸음 감지 자체는 공개 예제가 많습니다. 본 프로젝트의 차별점은 **"무엇을 감지하느냐"가 아니라 "어떤 구조로 설계했느냐"** 에 있습니다.
+졸음 감지 프로젝트에 대해서는 공개된 예제가 많습니다. 본 프로젝트의 차별점은 **"무엇을 감지하느냐"가 아니라 "어떤 구조로 설계했느냐"** 에 있습니다.
 
 - **물리적 결함 격리** — AI 추론(RPi5)과 안전 제어(STM32)를 별개 하드웨어로 분리. 단일 장애점 제거.
 - **Fail-safe 설계** — 노드 간 Heartbeat가 끊기면 "모니터링 불가" 상태를 침묵하지 않고 CAN으로 명확히 보고.
