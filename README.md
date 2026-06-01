@@ -3,6 +3,10 @@
 > RPi5 + Hailo-8 NPU + STM32(FreeRTOS) + CAN 기반 졸음 감지 · 실시간 안전 제어 분리형 운전자 모니터링 시스템  
 > Intel AI SW Academy 9기 3차 프로젝트 (2026.06)
 
+---
+
+## 🔧 Tech Stack
+
 ![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.13-3776AB?logo=python&logoColor=white)
 ![C](https://img.shields.io/badge/C-FreeRTOS-A8B9CC?logo=c&logoColor=black)
 ![Raspberry Pi 5](https://img.shields.io/badge/Raspberry%20Pi%205-Host-A22846?logo=raspberrypi&logoColor=white)
@@ -18,10 +22,6 @@
 ![CAN](https://img.shields.io/badge/Protocol-CAN%20%7C%20UART-FF6F00)
 ![Vector CANdb++](https://img.shields.io/badge/Vector-CANdb%2B%2B-E2001A)
 
-> **[Intel Edge AI 3차 프로젝트]** AI 추론과 실시간 안전 제어를 **물리적으로 분리**한 기능안전 기반 운전자 모니터링 시스템(DMS)
-
-졸음 감지 AI(비결정적)와 실시간 안전 제어(결정적)를 **서로 다른 하드웨어 노드로 물리적으로 분리**하여, AI의 불안정성(지연·다운)이 차량 안전 기능을 침해하지 못하게 설계한 DMS입니다. 감지 결과는 차량 네트워크(CAN)로 전달되며, 노드 간 통신이 끊기면 즉시 고장 코드(DTC)를 송출합니다.
-
 ---
 
 ## 핵심 차별점
@@ -31,6 +31,8 @@
 - **물리적 결함 격리** — AI 추론(RPi5)과 안전 제어(STM32)를 별개 하드웨어로 분리. 단일 장애점 제거.
 - **Fail-safe 설계** — 노드 간 Heartbeat가 끊기면 "모니터링 불가" 상태를 침묵하지 않고 CAN으로 명확히 보고.
 - **우선순위 기반 실시간성** — AI 연산 부하가 급증해도 안전 기능(CAN 송신·고장 감지)은 RTOS 우선순위로 지연 없이 동작.
+
+졸음 감지 AI(비결정적)와 실시간 안전 제어(결정적)를 **서로 다른 하드웨어 노드로 물리적으로 분리**하여, AI의 불안정성(지연·다운)이 차량 안전 기능을 침해하지 못하게 설계한 DMS입니다. 감지 결과는 차량 네트워크(CAN)로 전달되며, 노드 간 통신이 끊기면 즉시 고장 코드(DTC)를 송출합니다.
 
 ---
 
