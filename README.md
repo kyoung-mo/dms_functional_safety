@@ -2,7 +2,7 @@
 
 ![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.13-3776AB?logo=python&logoColor=white)
 ![C](https://img.shields.io/badge/C-FreeRTOS-A8B9CC?logo=c&logoColor=black)
-![Raspberry Pi 5](https://img.shields.io/badge/Raspberry%20Pi%205-NPU-A22846?logo=raspberrypi&logoColor=white)
+![Raspberry Pi 5](https://img.shields.io/badge/Raspberry%20Pi%205-Host-A22846?logo=raspberrypi&logoColor=white)
 ![Hailo-8](https://img.shields.io/badge/Hailo--8-NPU-00B5AD)
 ![STM32](https://img.shields.io/badge/STM32-L475%20%7C%20F103-03234B?logo=stmicroelectronics&logoColor=white)
 ![FreeRTOS](https://img.shields.io/badge/FreeRTOS-RTOS-2EA44F)
