@@ -1,0 +1,16 @@
+# 가상환경
+dms_env/
+
+# 데이터셋 (용량 큼)
+**/WIDER_val/
+**/WIDER_val.zip
+**/calib_*/
+
+# 로그
+*.log
+**/logs/
+**/.install_logs/
+
+# Python 캐시
+__pycache__/
+*.pyc
