@@ -26,7 +26,7 @@ RIGHT_EYE_IDX = [362, 385, 387, 263, 373, 380]
 
 # --- 동적 임계값 및 상태 설정 ---
 DROWSINESS_TIME = 1.5
-EAR_HISTORY_LEN = 150
+EAR_HISTORY_LEN = 600
 EAR_RATIO = 0.75
 
 # --- UART 설정 ---
