@@ -55,7 +55,7 @@ volatile uint8_t driver_state = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
-void SystemClock_Config(void);
+void SystemClock_Config(void); // 80 MHz 클럭 세팅
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -93,12 +93,16 @@ int main(void)
   /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_UART4_Init();
+  MX_GPIO_Init(); // PB14(LED2) GPIO_Output 초기화
+  MX_UART4_Init(); // PA0, PA1, 115200 8N1, 인터럽트 모드
   /* USER CODE BEGIN 2 */
 
   // 초기화 후 실행할 코드는 여기( UART 수신 시작 코드)
-  HAL_UART_Receive_IT(&huart4, &rx_byte, 1);
+  HAL_UART_Receive_IT(&huart4, &rx_byte, 1); // UART의 수신 시작점.
+  // UART4에서 1바이트가 오면 rx_byte에 넣고 인터럽트 발생시 켜줘. 라는 예약
+  // 이걸 호출한 이후부터  UART4에 데이터가 오면 자동으로 HAL_UART_RxCpltCallback이 불림.
+  // 한 번만 호출하면 되고. 이후에는 재호출로 이어지는 구조.
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -190,7 +194,9 @@ void SystemClock_Config(void)
 
 /* USER CODE BEGIN 4 */
 
-// 콜백 함수 작성
+// 인터럽트 콜백 함수 작성
+// UART가 여러개일 수 있으니 UART4에서 온 것만 처리하고,
+// UART4로 1바이트 수신 완료될 때마다 HAL이 자동으로 호출된다.
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if(huart->Instance == UART4)
@@ -261,3 +267,4 @@ void assert_failed(uint8_t *file, uint32_t line)
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
+
