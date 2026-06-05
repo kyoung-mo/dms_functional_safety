@@ -14,3 +14,16 @@ dms_env/
 # Python 캐시
 __pycache__/
 *.pyc
+
+# STM32 CubeIDE 빌드 산출물 및 라이브러리 제외
+**/Debug/
+**/Release/
+*.elf
+*.bin
+*.map
+*.o
+*.su
+*.d
+
+# Drivers 폴더 제외 (ioc 파일로 재생성 가능)
+**/Drivers/
