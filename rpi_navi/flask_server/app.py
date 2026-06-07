@@ -11,7 +11,11 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 current_state = 0
 
+@app.route("/gps-sender")
+def gps_sender():
+    return render_template("gps_sender.html")
 @app.route("/")
+
 def index():
     return render_template("index.html")
 

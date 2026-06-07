@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>GPS Sender</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; }
+        #status { font-size: 20px; margin: 20px; }
+        #coords { font-size: 16px; color: gray; }
+    </style>
+</head>
+<body>
+    <h2>DMS GPS Sender</h2>
+    <div id="status">대기 중...</div>
+    <div id="coords"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getDatabase, ref, set } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+        const firebaseConfig = {
+            databaseURL: "https://dms-navi-default-rtdb.asia-southeast1.firebasedatabase.app"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        function sendGPS(lat, lon) {
+            set(ref(db, 'gps'), { lat: lat, lon: lon });
+            document.getElementById('status').innerText = '✅ GPS 전송 중';
+            document.getElementById('coords').innerText = `lat: ${lat.toFixed(6)}, lon: ${lon.toFixed(6)}`;
+        }
+
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(
+                pos => sendGPS(pos.coords.latitude, pos.coords.longitude),
+                err => document.getElementById('status').innerText = '❌ GPS 오류: ' + err.message,
+                { enableHighAccuracy: true, maximumAge: 3000, timeout: 10000 }
+            );
+        } else {
+            document.getElementById('status').innerText = '❌ GPS 미지원 브라우저';
+        }
+    </script>
+</body>
+</html>
