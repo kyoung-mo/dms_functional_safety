@@ -3,37 +3,179 @@
 <head>
     <meta charset="utf-8">
     <title>DMS Navi</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
     <script type="text/javascript"
-        src="//dapi.kakao.com/v2/maps/sdk.js?appkey=5735c411c5a31661741adfbd0cd7857d&autoload=false">
+        src="//dapi.kakao.com/v2/maps/sdk.js?appkey=5735c411c5a31661741adfbd0cd7857d&autoload=false&libraries=clusterer">
     </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: #1a1a2e; color: white; height: 100vh; display: flex; flex-direction: column; }
+        #topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; background: #16213e; border-bottom: 2px solid #0f3460; z-index: 100; }
+        #topbar .title { font-size: 18px; font-weight: bold; color: #e94560; letter-spacing: 2px; }
+        #topbar .time { font-size: 16px; color: #aaa; }
+        #map { flex: 1; width: 100%; }
+        #bottom-panel { background: #16213e; border-top: 2px solid #0f3460; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+        #state-card { display: flex; align-items: center; gap: 12px; background: #0f3460; border-radius: 12px; padding: 10px 20px; flex: 1; transition: all 0.3s; }
+        #state-icon { font-size: 32px; }
+        #state-text { font-size: 14px; color: #aaa; }
+        #state-label { font-size: 20px; font-weight: bold; }
+        #event-card { background: #0f3460; border-radius: 12px; padding: 10px 16px; text-align: center; min-width: 80px; }
+        #event-count { font-size: 28px; font-weight: bold; color: #e94560; }
+        #event-text { font-size: 11px; color: #aaa; }
+        #gps-card { background: #0f3460; border-radius: 12px; padding: 10px 16px; text-align: center; min-width: 100px; }
+        #gps-status { font-size: 13px; color: #4ecca3; }
+        #gps-coords { font-size: 10px; color: #aaa; margin-top: 2px; }
+        .state-normal { border-left: 4px solid #4ecca3; }
+        .state-caution { border-left: 4px solid #f5a623; background: #1a1a00 !important; }
+        .state-drowsy { border-left: 4px solid #e94560; background: #1a0000 !important; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+    </style>
 </head>
 <body>
-    <div id="status" style="font-size:24px; padding:10px;">State: 0</div>
-    <div id="map" style="width:100%;height:500px;"></div>
+    <div id="topbar">
+        <div class="title">🚗 DMS NAVI</div>
+        <div class="time" id="clock"></div>
+    </div>
+    <div id="map"></div>
+    <div id="bottom-panel">
+        <div id="state-card" class="state-normal">
+            <div id="state-icon">😊</div>
+            <div>
+                <div id="state-text">운전자 상태</div>
+                <div id="state-label">정상</div>
+            </div>
+        </div>
+        <div id="event-card">
+            <div id="event-count">0</div>
+            <div id="event-text">졸음 이벤트</div>
+        </div>
+        <div id="gps-card">
+            <div id="gps-status">📡 GPS 연결중</div>
+            <div id="gps-coords">--</div>
+        </div>
+    </div>
 
 <script>
+const REST_API_KEY = '10f085a36650f957f84ab9743a03e815';
+
+function updateClock() {
+    const now = new Date();
+    document.getElementById('clock').innerText =
+        now.getHours().toString().padStart(2,'0') + ':' +
+        now.getMinutes().toString().padStart(2,'0') + ':' +
+        now.getSeconds().toString().padStart(2,'0');
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// 역지오코딩 (좌표 → 주소)
+async function getAddress(lat, lon) {
+    try {
+        const res = await fetch(
+            `https://dapi.kakao.com/v2/local/geo/coord2address.json?x=${lon}&y=${lat}`,
+            { headers: { 'Authorization': 'KakaoAK ' + REST_API_KEY } }
+        );
+        const data = await res.json();
+        if (data.documents && data.documents.length > 0) {
+            const addr = data.documents[0];
+            const road = addr.road_address ? addr.road_address.address_name : null;
+            const jibun = addr.address ? addr.address.address_name : null;
+            return road || jibun || '주소 불명';
+        }
+    } catch(e) {}
+    return '주소 불명';
+}
+
 kakao.maps.load(function() {
     var map = new kakao.maps.Map(document.getElementById('map'), {
         center: new kakao.maps.LatLng(37.5665, 126.9780),
-        level: 5
+        level: 4
     });
 
+    var pathCoords = [];
+    var polyline = new kakao.maps.Polyline({
+        map: map,
+        path: pathCoords,
+        strokeWeight: 4,
+        strokeColor: '#4ecca3',
+        strokeOpacity: 0.8,
+        strokeStyle: 'solid'
+    });
+
+    // 클러스터러
+    var clusterer = new kakao.maps.MarkerClusterer({
+        map: map,
+        averageCenter: true,
+        minLevel: 4,
+        disableClickZoom: false,
+        styles: [{
+            width: '40px', height: '40px',
+            background: 'rgba(233,69,96,0.85)',
+            borderRadius: '50%',
+            color: '#fff',
+            textAlign: 'center',
+            lineHeight: '40px',
+            fontSize: '14px',
+            fontWeight: 'bold'
+        }]
+    });
+
+    var eventCount = 0;
+    var openInfoWindow = null;
+
     var socket = io();
-    socket.on('state_update', function(data) {
-        document.getElementById('status').innerText = 'State: ' + data.state;
-        if (data.state >= 1 && data.lat && data.lon) {
-            var pos = new kakao.maps.LatLng(data.lat, data.lon);
-            var marker = new kakao.maps.Marker({
-                position: pos,
-                map: map
-            });
+    socket.on('state_update', async function(data) {
+        var state = data.state;
+        var lat = data.lat;
+        var lon = data.lon;
+        var card = document.getElementById('state-card');
+        var icon = document.getElementById('state-icon');
+        var labelEl = document.getElementById('state-label');
+
+        if (state === 0) { icon.innerText = '😊'; labelEl.innerText = '정상'; card.className = 'state-card state-normal'; }
+        else if (state === 1) { icon.innerText = '⚠️'; labelEl.innerText = '주의'; card.className = 'state-card state-caution'; }
+        else if (state === 2) { icon.innerText = '😴'; labelEl.innerText = '졸음 감지!'; card.className = 'state-card state-drowsy'; }
+
+        if (lat && lon) {
+            document.getElementById('gps-status').innerText = '📡 GPS 연결됨';
+            document.getElementById('gps-coords').innerText = lat.toFixed(4) + ', ' + lon.toFixed(4);
+
+            var pos = new kakao.maps.LatLng(lat, lon);
+            pathCoords.push(pos);
+            polyline.setPath(pathCoords);
             map.setCenter(pos);
-            var label = data.state === 2 ? '😴 졸음' : '⚠️ 주의';
-            var infowindow = new kakao.maps.InfoWindow({
-                content: '<div style="padding:5px;">' + label + '</div>'
-            });
-            infowindow.open(map, marker);
+
+            if (state >= 1) {
+                eventCount++;
+                document.getElementById('event-count').innerText = eventCount;
+
+                // 주소 가져오기
+                const address = await getAddress(lat, lon);
+                const now = new Date();
+                const timeStr = now.getHours().toString().padStart(2,'0') + ':' +
+                                now.getMinutes().toString().padStart(2,'0') + ':' +
+                                now.getSeconds().toString().padStart(2,'0');
+                const stateStr = state === 2 ? '😴 졸음' : '⚠️ 주의';
+
+                var marker = new kakao.maps.Marker({ position: pos });
+                var iwContent =
+                    '<div style="padding:10px;min-width:200px;font-family:sans-serif;background:#1a1a2e;color:white;border-radius:8px;">' +
+                    '<div style="font-size:16px;font-weight:bold;margin-bottom:6px;">' + stateStr + '</div>' +
+                    '<div style="font-size:12px;color:#aaa;">🕐 ' + timeStr + '</div>' +
+                    '<div style="font-size:12px;color:#aaa;margin-top:4px;">📍 ' + address + '</div>' +
+                    '</div>';
+
+                var infowindow = new kakao.maps.InfoWindow({ content: iwContent, removable: true });
+
+                kakao.maps.event.addListener(marker, 'click', function() {
+                    if (openInfoWindow) openInfoWindow.close();
+                    infowindow.open(map, marker);
+                    openInfoWindow = infowindow;
+                });
+
+                clusterer.addMarker(marker);
+            }
         }
     });
 });
