@@ -26,8 +26,9 @@ RIGHT_EYE_IDX = [362, 385, 387, 263, 373, 380]
 
 # --- 동적 임계값 및 상태 설정 ---
 DROWSINESS_TIME = 1.5
-EAR_HISTORY_LEN = 600
+EAR_HISTORY_LEN = 300
 EAR_RATIO = 0.75
+EAR_OPEN_RATIO = 0.90
 
 # --- UART 설정 ---
 UART_PORT = "/dev/serial0"
@@ -125,18 +126,23 @@ try:
                 ear_history.append(avg_ear)
                 if len(ear_history) > 50:
                     ear_max = np.percentile(ear_history, 90)
-                    current_threshold = ear_max * EAR_RATIO
+                    current_threshold = ear_max
+                
+                close_thr = current_threshold * EAR_RATIO
+                open_thr = current_threshold * EAR_OPEN_RATIO
 
-                if avg_ear < current_threshold:
+                if avg_ear < close_thr:
                     if eye_closed_start_time is None:
                         eye_closed_start_time = curr_time
                         driver_state = 1
                     else:
                         if (curr_time - eye_closed_start_time) >= DROWSINESS_TIME:
                             driver_state = 2
-                else:
+
+                elif avg_ear > open_thr:
                     eye_closed_start_time = None
                     driver_state = 0
+
         else:
             eye_closed_start_time = None
             driver_state = 0
