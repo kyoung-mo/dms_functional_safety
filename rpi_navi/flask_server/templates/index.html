@@ -14,13 +14,13 @@
         #topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; background: #16213e; border-bottom: 2px solid #0f3460; z-index: 100; }
         #topbar .title { font-size: 18px; font-weight: bold; color: #e94560; letter-spacing: 2px; }
         #topbar .time { font-size: 16px; color: #aaa; }
-        #map { flex: 1; width: 100%; }
+        #map { flex: 1; width: 100%; position: relative; }
         #bottom-panel { background: #16213e; border-top: 2px solid #0f3460; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
         #state-card { display: flex; align-items: center; gap: 12px; background: #0f3460; border-radius: 12px; padding: 10px 20px; flex: 1; transition: all 0.3s; }
         #state-icon { font-size: 32px; }
         #state-text { font-size: 14px; color: #aaa; }
         #state-label { font-size: 20px; font-weight: bold; }
-        #event-card { background: #0f3460; border-radius: 12px; padding: 10px 16px; text-align: center; min-width: 80px; }
+        #event-card { background: #0f3460; border-radius: 12px; padding: 10px 16px; text-align: center; min-width: 80px; cursor: pointer; }
         #event-count { font-size: 28px; font-weight: bold; color: #e94560; }
         #event-text { font-size: 11px; color: #aaa; }
         #gps-card { background: #0f3460; border-radius: 12px; padding: 10px 16px; text-align: center; min-width: 100px; }
@@ -29,7 +29,67 @@
         .state-normal { border-left: 4px solid #4ecca3; }
         .state-caution { border-left: 4px solid #f5a623; background: #1a1a00 !important; }
         .state-drowsy { border-left: 4px solid #e94560; background: #1a0000 !important; animation: pulse 1s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        @keyframes pulse { 0%{opacity:1}50%{opacity:0.7}100%{opacity:1} }
+
+        /* 현재위치 마커 - pointer-events 없애서 클릭 통과 */
+        .my-location-wrap {
+            position: relative;
+            width: 60px;
+            height: 60px;
+            pointer-events: none !important;
+        }
+        .my-location-cone {
+            position: absolute;
+            bottom: 50%; left: 50%;
+            transform: translateX(-50%);
+            width: 0; height: 0;
+            border-left: 18px solid transparent;
+            border-right: 18px solid transparent;
+            border-top: 36px solid rgba(78,204,163,0.35);
+            filter: blur(2px);
+            pointer-events: none !important;
+        }
+        .my-location-dot {
+            width: 18px; height: 18px;
+            background: #4ecca3;
+            border: 3px solid white;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 12px rgba(78,204,163,0.9);
+            pointer-events: none !important;
+        }
+
+        /* 팝업 - 터치 스크롤 가능하게 */
+        #popup-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1999;
+        }
+        #event-popup {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: #16213e;
+            border: 2px solid #e94560;
+            border-radius: 16px;
+            padding: 20px;
+            z-index: 2000;
+            width: 85vw;
+            max-width: 400px;
+            max-height: 70vh;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        #event-popup h3 { color: #e94560; margin-bottom: 12px; font-size: 16px; position: sticky; top: 0; background: #16213e; padding-bottom: 8px; }
+        .event-item { background: #0f3460; border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 13px; }
+        .event-item .event-state { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
+        .event-item .event-detail { color: #aaa; font-size: 11px; }
+        #popup-close { background: #e94560; border: none; color: white; padding: 8px 20px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px; font-size: 14px; position: sticky; bottom: 0; }
     </style>
 </head>
 <body>
@@ -46,7 +106,7 @@
                 <div id="state-label">정상</div>
             </div>
         </div>
-        <div id="event-card">
+        <div id="event-card" onclick="showEventList()">
             <div id="event-count">0</div>
             <div id="event-text">졸음 이벤트</div>
         </div>
@@ -56,8 +116,16 @@
         </div>
     </div>
 
+    <div id="popup-overlay" onclick="closeEventList()"></div>
+    <div id="event-popup">
+        <h3>😴 졸음 이벤트 목록</h3>
+        <div id="event-list"></div>
+        <button id="popup-close" onclick="closeEventList()">닫기</button>
+    </div>
+
 <script>
 const REST_API_KEY = '10f085a36650f957f84ab9743a03e815';
+var eventLog = [];
 
 function updateClock() {
     const now = new Date();
@@ -69,19 +137,58 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
-// 역지오코딩 (좌표 → 주소)
+function showEventList() {
+    if (eventLog.length === 0) return;
+    const list = document.getElementById('event-list');
+    list.innerHTML = '';
+    eventLog.slice().reverse().forEach(function(e) {
+        list.innerHTML +=
+            '<div class="event-item">' +
+            '<div class="event-state">' + (e.state === 2 ? '😴 졸음' : '⚠️ 주의') + '</div>' +
+            '<div class="event-detail">🕐 ' + e.time + '</div>' +
+            '<div class="event-detail">📍 ' + e.address + '</div>' +
+            '</div>';
+    });
+    document.getElementById('popup-overlay').style.display = 'block';
+    document.getElementById('event-popup').style.display = 'block';
+}
+
+function closeEventList() {
+    document.getElementById('popup-overlay').style.display = 'none';
+    document.getElementById('event-popup').style.display = 'none';
+}
+
+function showNearbyEvents(markerLat, markerLon) {
+    var RADIUS = 50;
+    var nearby = eventLog.filter(function(e) {
+        var dLat = (e.lat - markerLat) * 111000;
+        var dLon = (e.lon - markerLon) * 111000 * Math.cos(markerLat * Math.PI / 180);
+        return Math.sqrt(dLat*dLat + dLon*dLon) <= RADIUS;
+    });
+    var list = document.getElementById('event-list');
+    list.innerHTML = '';
+    nearby.forEach(function(e) {
+        list.innerHTML +=
+            '<div class="event-item">' +
+            '<div class="event-state">' + (e.state === 2 ? '😴 졸음' : '⚠️ 주의') + '</div>' +
+            '<div class="event-detail">🕐 ' + e.time + '</div>' +
+            '<div class="event-detail">📍 ' + e.address + '</div>' +
+            '</div>';
+    });
+    document.getElementById('popup-overlay').style.display = 'block';
+    document.getElementById('event-popup').style.display = 'block';
+}
+
 async function getAddress(lat, lon) {
     try {
         const res = await fetch(
-            `https://dapi.kakao.com/v2/local/geo/coord2address.json?x=${lon}&y=${lat}`,
+            'https://dapi.kakao.com/v2/local/geo/coord2address.json?x=' + lon + '&y=' + lat,
             { headers: { 'Authorization': 'KakaoAK ' + REST_API_KEY } }
         );
         const data = await res.json();
         if (data.documents && data.documents.length > 0) {
             const addr = data.documents[0];
-            const road = addr.road_address ? addr.road_address.address_name : null;
-            const jibun = addr.address ? addr.address.address_name : null;
-            return road || jibun || '주소 불명';
+            return addr.road_address ? addr.road_address.address_name : addr.address.address_name;
         }
     } catch(e) {}
     return '주소 불명';
@@ -91,6 +198,19 @@ kakao.maps.load(function() {
     var map = new kakao.maps.Map(document.getElementById('map'), {
         center: new kakao.maps.LatLng(37.5665, 126.9780),
         level: 4
+    });
+
+    // 현재위치 오버레이 - zIndex 낮게
+    var myLocationContent = document.createElement('div');
+    myLocationContent.className = 'my-location-wrap';
+    myLocationContent.innerHTML = '<div class="my-location-dot"></div>';
+
+    var myLocationOverlay = new kakao.maps.CustomOverlay({
+        map: map,
+        content: myLocationContent,
+        zIndex: 1, clickable: false,
+        yAnchor: 0.5,
+        xAnchor: 0.5
     });
 
     var pathCoords = [];
@@ -103,32 +223,52 @@ kakao.maps.load(function() {
         strokeStyle: 'solid'
     });
 
-    // 클러스터러
     var clusterer = new kakao.maps.MarkerClusterer({
         map: map,
         averageCenter: true,
-        minLevel: 4,
-        disableClickZoom: false,
+        minLevel: 3,
+        disableClickZoom: true,
         styles: [{
-            width: '40px', height: '40px',
-            background: 'rgba(233,69,96,0.85)',
+            width: '44px', height: '44px',
+            background: 'rgba(233,69,96,0.9)',
             borderRadius: '50%',
             color: '#fff',
             textAlign: 'center',
-            lineHeight: '40px',
-            fontSize: '14px',
-            fontWeight: 'bold'
+            lineHeight: '44px',
+            fontSize: '15px',
+            fontWeight: 'bold',
+            border: '3px solid white'
         }]
     });
 
+    kakao.maps.event.addListener(clusterer, 'clusterclick', function(cluster) {
+        var markers = cluster.getMarkers();
+        var list = document.getElementById('event-list');
+        list.innerHTML = '';
+        markers.forEach(function(m) {
+            if (m._eventData) {
+                var e = m._eventData;
+                list.innerHTML +=
+                    '<div class="event-item">' +
+                    '<div class="event-state">' + (e.state === 2 ? '😴 졸음' : '⚠️ 주의') + '</div>' +
+                    '<div class="event-detail">🕐 ' + e.time + '</div>' +
+                    '<div class="event-detail">📍 ' + e.address + '</div>' +
+                    '</div>';
+            }
+        });
+        document.getElementById('popup-overlay').style.display = 'block';
+        document.getElementById('event-popup').style.display = 'block';
+    });
+
     var eventCount = 0;
-    var openInfoWindow = null;
 
     var socket = io();
     socket.on('state_update', async function(data) {
         var state = data.state;
         var lat = data.lat;
         var lon = data.lon;
+        var heading = data.heading || 0;
+
         var card = document.getElementById('state-card');
         var icon = document.getElementById('state-icon');
         var labelEl = document.getElementById('state-label');
@@ -142,6 +282,9 @@ kakao.maps.load(function() {
             document.getElementById('gps-coords').innerText = lat.toFixed(4) + ', ' + lon.toFixed(4);
 
             var pos = new kakao.maps.LatLng(lat, lon);
+            myLocationOverlay.setPosition(pos);
+            myLocationContent.style.transform = 'rotate(' + heading + 'deg)';
+
             pathCoords.push(pos);
             polyline.setPath(pathCoords);
             map.setCenter(pos);
@@ -150,29 +293,23 @@ kakao.maps.load(function() {
                 eventCount++;
                 document.getElementById('event-count').innerText = eventCount;
 
-                // 주소 가져오기
-                const address = await getAddress(lat, lon);
-                const now = new Date();
-                const timeStr = now.getHours().toString().padStart(2,'0') + ':' +
-                                now.getMinutes().toString().padStart(2,'0') + ':' +
-                                now.getSeconds().toString().padStart(2,'0');
-                const stateStr = state === 2 ? '😴 졸음' : '⚠️ 주의';
+                var address = await getAddress(lat, lon);
+                var now = new Date();
+                var timeStr = now.getHours().toString().padStart(2,'0') + ':' +
+                              now.getMinutes().toString().padStart(2,'0') + ':' +
+                              now.getSeconds().toString().padStart(2,'0');
+
+                eventLog.push({ state: state, time: timeStr, address: address, lat: lat, lon: lon });
 
                 var marker = new kakao.maps.Marker({ position: pos });
-                var iwContent =
-                    '<div style="padding:10px;min-width:200px;font-family:sans-serif;background:#1a1a2e;color:white;border-radius:8px;">' +
-                    '<div style="font-size:16px;font-weight:bold;margin-bottom:6px;">' + stateStr + '</div>' +
-                    '<div style="font-size:12px;color:#aaa;">🕐 ' + timeStr + '</div>' +
-                    '<div style="font-size:12px;color:#aaa;margin-top:4px;">📍 ' + address + '</div>' +
-                    '</div>';
+                marker._eventData = { state: state, time: timeStr, address: address };
 
-                var infowindow = new kakao.maps.InfoWindow({ content: iwContent, removable: true });
-
-                kakao.maps.event.addListener(marker, 'click', function() {
-                    if (openInfoWindow) openInfoWindow.close();
-                    infowindow.open(map, marker);
-                    openInfoWindow = infowindow;
-                });
+                // 클릭 시 50m 반경 이벤트 묶음 표시
+                (function(mLat, mLon) {
+                    kakao.maps.event.addListener(marker, 'click', function() {
+                        showNearbyEvents(mLat, mLon);
+                    });
+                })(lat, lon);
 
                 clusterer.addMarker(marker);
             }
