@@ -31,7 +31,6 @@
         .state-drowsy { border-left: 4px solid #e94560; background: #1a0000 !important; animation: pulse 1s infinite; }
         @keyframes pulse { 0%{opacity:1}50%{opacity:0.7}100%{opacity:1} }
 
-        /* 현재위치 마커 - pointer-events 없애서 클릭 통과 */
         .my-location-wrap {
             position: relative;
             width: 60px;
@@ -61,7 +60,6 @@
             pointer-events: none !important;
         }
 
-        /* 팝업 - 터치 스크롤 가능하게 */
         #popup-overlay {
             display: none;
             position: fixed;
@@ -90,9 +88,23 @@
         .event-item .event-state { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
         .event-item .event-detail { color: #aaa; font-size: 11px; }
         #popup-close { background: #e94560; border: none; color: white; padding: 8px 20px; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px; font-size: 14px; position: sticky; bottom: 0; }
+
+        /* 졸음 경고 빨간 필터 오버레이 */
+        #drowsy-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(233, 69, 96, 0.35);
+            z-index: 9999;
+            pointer-events: none;
+            transition: opacity 0.1s;
+        }
     </style>
 </head>
 <body>
+    <!-- 졸음 경고 오버레이 -->
+    <div id="drowsy-overlay"></div>
+
     <div id="topbar">
         <div class="title">🚗 DMS NAVI</div>
         <div class="time" id="clock"></div>
@@ -136,6 +148,29 @@ function updateClock() {
 }
 setInterval(updateClock, 1000);
 updateClock();
+
+// 졸음 빨간 필터 깜빡임
+var drowsyInterval = null;
+
+function startDrowsyFlash() {
+    if (drowsyInterval) return; // 이미 실행 중이면 중복 방지
+    var overlay = document.getElementById('drowsy-overlay');
+    overlay.style.display = 'block';
+    overlay.style.opacity = '1';
+    drowsyInterval = setInterval(function() {
+        overlay.style.opacity = (overlay.style.opacity === '0') ? '1' : '0';
+    }, 500);
+}
+
+function stopDrowsyFlash() {
+    if (drowsyInterval) {
+        clearInterval(drowsyInterval);
+        drowsyInterval = null;
+    }
+    var overlay = document.getElementById('drowsy-overlay');
+    overlay.style.display = 'none';
+    overlay.style.opacity = '1';
+}
 
 function showEventList() {
     if (eventLog.length === 0) return;
@@ -200,7 +235,6 @@ kakao.maps.load(function() {
         level: 4
     });
 
-    // 현재위치 오버레이 - zIndex 낮게
     var myLocationContent = document.createElement('div');
     myLocationContent.className = 'my-location-wrap';
     myLocationContent.innerHTML = '<div class="my-location-dot"></div>';
@@ -273,9 +307,24 @@ kakao.maps.load(function() {
         var icon = document.getElementById('state-icon');
         var labelEl = document.getElementById('state-label');
 
-        if (state === 0) { icon.innerText = '😊'; labelEl.innerText = '정상'; card.className = 'state-card state-normal'; }
-        else if (state === 1) { icon.innerText = '⚠️'; labelEl.innerText = '주의'; card.className = 'state-card state-caution'; }
-        else if (state === 2) { icon.innerText = '😴'; labelEl.innerText = '졸음 감지!'; card.className = 'state-card state-drowsy'; }
+        if (state === 0) {
+            icon.innerText = '😊';
+            labelEl.innerText = '정상';
+            card.className = 'state-card state-normal';
+            stopDrowsyFlash();
+        }
+        else if (state === 1) {
+            icon.innerText = '⚠️';
+            labelEl.innerText = '주의';
+            card.className = 'state-card state-caution';
+            startDrowsyFlash();
+        }
+        else if (state === 2) {
+            icon.innerText = '😴';
+            labelEl.innerText = '졸음 감지!';
+            card.className = 'state-card state-drowsy';
+            startDrowsyFlash();
+        }
 
         if (lat && lon) {
             document.getElementById('gps-status').innerText = '📡 GPS 연결됨';
@@ -304,7 +353,6 @@ kakao.maps.load(function() {
                 var marker = new kakao.maps.Marker({ position: pos });
                 marker._eventData = { state: state, time: timeStr, address: address };
 
-                // 클릭 시 50m 반경 이벤트 묶음 표시
                 (function(mLat, mLon) {
                     kakao.maps.event.addListener(marker, 'click', function() {
                         showNearbyEvents(mLat, mLon);
