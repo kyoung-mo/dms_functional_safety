@@ -14,7 +14,7 @@
         #topbar { display: flex; align-items: center; justify-content: space-between; padding: 12px 20px; background: #16213e; border-bottom: 2px solid #0f3460; z-index: 100; }
         #topbar .title { font-size: 18px; font-weight: bold; color: #e94560; letter-spacing: 2px; }
         #topbar-right { display: flex; align-items: center; gap: 12px; }
-        #conn-icon { font-size: 20px; }
+        #conn-icon { font-size: 22px; line-height: 1; }
         #topbar .time { font-size: 16px; color: #aaa; }
         #map { flex: 1; width: 100%; position: relative; }
         #bottom-panel { background: #16213e; border-top: 2px solid #0f3460; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
@@ -37,8 +37,34 @@
         @keyframes pulse { 0%{opacity:1}50%{opacity:0.7}100%{opacity:1} }
         .my-location-wrap { position: relative; width: 60px; height: 60px; pointer-events: none !important; }
         .my-location-dot { width: 18px; height: 18px; background: #4ecca3; border: 3px solid white; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 12px rgba(78,204,163,0.9); pointer-events: none !important; }
+
+        /* 졸음 빨간 오버레이 */
         #drowsy-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(233,69,96,0.35); z-index: 9999; pointer-events: none; }
-        #rpi-disconn-banner { display: none; position: absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(200,0,0,0.85); color: white; font-size: 16px; font-weight: bold; padding: 10px 28px; border-radius: 10px; z-index: 500; letter-spacing: 1px; white-space: nowrap; }
+
+        /* RPi 연결 끊김 배너 - 부드러운 페이드 깜빡임 */
+        #rpi-disconn-banner {
+            display: none;
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ff3333;
+            font-size: 20px;
+            font-weight: bold;
+            z-index: 500;
+            white-space: nowrap;
+            letter-spacing: 1px;
+            text-shadow: 0 0 12px rgba(255,50,50,0.7);
+            animation: fadeInOut 2s ease-in-out infinite;
+        }
+        @keyframes fadeInOut {
+            0%   { opacity: 0; }
+            30%  { opacity: 1; }
+            70%  { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* 팝업 공통 */
         .popup-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1999; }
         .popup-box { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #16213e; border: 2px solid #e94560; border-radius: 16px; padding: 20px; z-index: 2000; width: 85vw; max-width: 400px; max-height: 70vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
         .popup-box h3 { color: #e94560; margin-bottom: 12px; font-size: 16px; position: sticky; top: 0; background: #16213e; padding-bottom: 8px; }
@@ -55,6 +81,7 @@
 </head>
 <body>
     <div id="drowsy-overlay"></div>
+
     <div id="topbar">
         <div class="title">🚗 DMS NAVI</div>
         <div id="topbar-right">
@@ -62,9 +89,11 @@
             <div class="time" id="clock"></div>
         </div>
     </div>
+
     <div id="map" style="position:relative;">
-        <div id="rpi-disconn-banner">⚠️ RPi5 연결이 끊겼습니다.</div>
+        <div id="rpi-disconn-banner">연결이 끊겼습니다.</div>
     </div>
+
     <div id="bottom-panel">
         <div id="state-card" class="state-normal">
             <div id="state-icon">😊</div>
@@ -105,11 +134,8 @@
 const REST_API_KEY = '10f085a36650f957f84ab9743a03e815';
 var eventLog = [];
 var canLogging = false;
-
 var lastAliveTime = Date.now();
 var rpiConnected = true;
-
-// 졸음 세션 관리
 var drowsySession = null;
 var drowsyEndTimer = null;
 
@@ -123,10 +149,13 @@ function updateClock() {
 setInterval(updateClock, 1000);
 updateClock();
 
+// RPi 연결 상태 체크 (1초마다)
 setInterval(function() {
     if (Date.now() - lastAliveTime >= 3000 && rpiConnected) {
         rpiConnected = false;
-        document.getElementById('conn-icon').innerText = '📵';
+        // 상단바: 끊김 아이콘
+        document.getElementById('conn-icon').innerText = '🚫';
+        // 지도 중앙 배너 표시 (CSS 애니메이션으로 부드럽게 깜빡임)
         document.getElementById('rpi-disconn-banner').style.display = 'block';
         stopDrowsyFlash();
     }
@@ -274,14 +303,11 @@ kakao.maps.load(function() {
 
     var eventCount = 0;
 
-    // 졸음 세션 확정 → 이벤트 1개 기록
     async function commitDrowsyEvent(session) {
         eventCount++;
         document.getElementById('event-count').innerText = eventCount;
-
         var address = await getAddress(session.lat, session.lon);
         eventLog.push({ state: 2, time: session.time, address: address, lat: session.lat, lon: session.lon });
-
         var pos = new kakao.maps.LatLng(session.lat, session.lon);
         var marker = new kakao.maps.Marker({ position: pos });
         marker._eventData = { state: 2, time: session.time, address: address };
@@ -296,20 +322,29 @@ kakao.maps.load(function() {
     var socket = io();
     socket.on('state_update', async function(data) {
         var state = data.state;
-        var alive = data.alive !== undefined ? data.alive : 1;
         var lat = data.lat;
         var lon = data.lon;
         var heading = data.heading || 0;
 
-        // RPi 연결 상태 갱신
-        lastAliveTime = Date.now();
-        if (!rpiConnected) {
-            rpiConnected = true;
-            document.getElementById('conn-icon').innerText = '📶';
-            document.getElementById('rpi-disconn-banner').style.display = 'none';
-        }
+        // RPi 연결 복구
+         var alive = data.alive !== undefined ? data.alive : 1;
 
-        // CAN 로그
+        if (alive === 0) {
+            if (rpiConnected) {
+                rpiConnected = false;
+                document.getElementById('conn-icon').innerText = '🚫';
+                document.getElementById('rpi-disconn-banner').style.display = 'block';
+                stopDrowsyFlash();
+            }
+        } else {
+            lastAliveTime = Date.now();
+            if (!rpiConnected) {
+                rpiConnected = true;
+                document.getElementById('conn-icon').innerText = '📶';
+                document.getElementById('rpi-disconn-banner').style.display = 'none';
+            }
+        }       
+
         appendCanLog(data);
 
         // 운전자 상태 카드
@@ -334,7 +369,6 @@ kakao.maps.load(function() {
         if (lat && lon) {
             document.getElementById('gps-status').innerText = '📡 GPS 연결됨';
             document.getElementById('gps-coords').innerText = lat.toFixed(4) + ', ' + lon.toFixed(4);
-
             var pos = new kakao.maps.LatLng(lat, lon);
             myLocationOverlay.setPosition(pos);
             myLocationContent.style.transform = 'rotate(' + heading + 'deg)';
@@ -346,7 +380,6 @@ kakao.maps.load(function() {
         // 졸음 세션 관리
         if (state === 2) {
             if (!drowsySession) {
-                // 새 세션 시작 - 첫 졸음 감지 시점 기록
                 var now = new Date();
                 drowsySession = {
                     time: now.getHours().toString().padStart(2,'0') + ':' +
@@ -356,13 +389,11 @@ kakao.maps.load(function() {
                     lon: lon || 0
                 };
             }
-            // 5초 타이머 리셋 (졸음 지속 중이면 계속 연장)
             if (drowsyEndTimer) {
                 clearTimeout(drowsyEndTimer);
                 drowsyEndTimer = null;
             }
         } else {
-            // 졸음 아닌 상태 → 5초 타이머 시작
             if (drowsySession && !drowsyEndTimer) {
                 drowsyEndTimer = setTimeout(function() {
                     commitDrowsyEvent(drowsySession);
