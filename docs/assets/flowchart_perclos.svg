@@ -1,0 +1,179 @@
+<svg viewBox="0 0 900 860" xmlns="http://www.w3.org/2000/svg"
+     font-family="'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',Arial,sans-serif">
+<rect width="900" height="860" fill="white"/>
+<defs>
+  <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M0,1 L9,5 L0,9 z" fill="#444"/>
+  </marker>
+  <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M0,1 L9,5 L0,9 z" fill="#1B5E20"/>
+  </marker>
+  <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M0,1 L9,5 L0,9 z" fill="#B71C1C"/>
+  </marker>
+</defs>
+
+<!-- Column backgrounds -->
+<rect x="12" y="72" width="416" height="774" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="1" stroke-dasharray="5 3"/>
+<text x="24" y="88" fill="#2E7D32" font-size="10" font-weight="500">정상 모드 (Normal Mode)</text>
+
+<rect x="440" y="72" width="448" height="774" rx="10" fill="#FFEBEE" stroke="#B71C1C" stroke-width="1" stroke-dasharray="5 3"/>
+<text x="452" y="88" fill="#B71C1C" font-size="10" font-weight="500">졸음 모드 (Drowsy Mode)</text>
+
+<!-- Title -->
+<text x="450" y="28" text-anchor="middle" fill="#222" font-size="15" font-weight="500">PERCLOS 졸음 판정 알고리즘</text>
+<text x="450" y="46" text-anchor="middle" fill="#555" font-size="10">rpi5 / inference / perclos.py</text>
+
+<!-- EAR 입력 (shared, top center) -->
+<rect x="330" y="56" width="240" height="32" rx="16" fill="#444"/>
+<text x="450" y="77" text-anchor="middle" fill="white" font-size="12" font-weight="500">EAR 입력 (프레임마다)</text>
+
+<!-- Arrow down to is_drowsy? -->
+<line x1="450" y1="88" x2="450" y2="110" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+
+<!-- Diamond: is_drowsy? center=(450,140), hw=115, hh=32 -->
+<polygon points="450,110 565,140 450,170 335,140" fill="white" stroke="#444" stroke-width="1.5"/>
+<text x="450" y="136" text-anchor="middle" fill="#222" font-size="11" font-weight="500">is_drowsy?</text>
+<text x="450" y="151" text-anchor="middle" fill="#555" font-size="9">졸음 모드 진입 여부</text>
+
+<!-- No: left to Normal mode -->
+<line x1="335" y1="140" x2="220" y2="140" stroke="#2E7D32" stroke-width="1.5" marker-end="url(#ag)"/>
+<text x="276" y="132" text-anchor="middle" fill="#2E7D32" font-size="10">No (정상)</text>
+
+<!-- Yes: right to Drowsy mode -->
+<line x1="565" y1="140" x2="664" y2="140" stroke="#B71C1C" stroke-width="1.5" marker-end="url(#ar)"/>
+<text x="617" y="132" text-anchor="middle" fill="#B71C1C" font-size="10">Yes (졸음)</text>
+
+<!-- ── Normal mode column (center x=220) ── -->
+
+<!-- ear_history 추가 -->
+<rect x="100" y="158" width="240" height="38" rx="6" fill="#1B8A6B"/>
+<text x="220" y="175" text-anchor="middle" fill="white" font-size="12" font-weight="500">ear_history.append(ear)</text>
+<text x="220" y="189" text-anchor="middle" fill="#A5D6A7" font-size="9">maxlen=300 (~30초)</text>
+<line x1="220" y1="196" x2="220" y2="220" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+
+<!-- 동적 threshold -->
+<rect x="80" y="222" width="280" height="42" rx="6" fill="#1B8A6B"/>
+<text x="220" y="240" text-anchor="middle" fill="white" font-size="12" font-weight="500">동적 threshold 계산</text>
+<text x="220" y="256" text-anchor="middle" fill="#A5D6A7" font-size="9">np.percentile(history, 90) × 0.75</text>
+<line x1="220" y1="264" x2="220" y2="290" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+
+<!-- Diamond: EAR < threshold? center=(220,320), hw=105, hh=30 -->
+<polygon points="220,290 325,320 220,350 115,320" fill="white" stroke="#226040" stroke-width="1.5"/>
+<text x="220" y="316" text-anchor="middle" fill="#222" font-size="11" font-weight="500">EAR &lt; threshold?</text>
+<text x="220" y="331" text-anchor="middle" fill="#555" font-size="9">눈 감김 판단</text>
+
+<!-- Yes: down left (drowsy_counter++) -->
+<line x1="220" y1="350" x2="220" y2="366" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="235" y="362" fill="#555" font-size="9">Yes</text>
+<rect x="100" y="368" width="200" height="32" rx="5" fill="#388E3C"/>
+<text x="200" y="389" text-anchor="middle" fill="white" font-size="11">drowsy_counter++</text>
+<line x1="200" y1="400" x2="200" y2="434" stroke="#444" stroke-width="1.5"/>
+<line x1="200" y1="434" x2="220" y2="434" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+
+<!-- No: right (counter=0) -->
+<line x1="325" y1="320" x2="370" y2="320" stroke="#444" stroke-width="1.5"/>
+<line x1="370" y1="320" x2="370" y2="434" stroke="#444" stroke-width="1.5"/>
+<line x1="370" y1="434" x2="338" y2="434" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="350" y="312" text-anchor="middle" fill="#555" font-size="9">No</text>
+<rect x="310" y="368" width="180" height="32" rx="5" fill="#616161"/>
+<text x="400" y="389" text-anchor="middle" fill="white" font-size="11">drowsy_counter = 0</text>
+
+<!-- Diamond: counter >= 20? center=(220,466), hw=110, hh=30 -->
+<polygon points="220,436 330,466 220,496 110,466" fill="white" stroke="#226040" stroke-width="1.5"/>
+<text x="220" y="462" text-anchor="middle" fill="#222" font-size="11" font-weight="500">counter ≥ 20?</text>
+<text x="220" y="477" text-anchor="middle" fill="#555" font-size="9">~1.5초 @ 13fps</text>
+
+<!-- Yes → Drowsy 진입 (right) -->
+<line x1="330" y1="466" x2="440" y2="466" stroke="#B71C1C" stroke-width="1.5" marker-end="url(#ar)"/>
+<text x="387" y="458" text-anchor="middle" fill="#B71C1C" font-size="9">Yes → 졸음 진입</text>
+
+<!-- No → counter > 5? -->
+<line x1="220" y1="496" x2="220" y2="520" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="235" y="512" fill="#555" font-size="9">No</text>
+
+<!-- Diamond: counter > 5? center=(220,550) -->
+<polygon points="220,520 320,550 220,580 120,550" fill="white" stroke="#2E7D32" stroke-width="1.5"/>
+<text x="220" y="546" text-anchor="middle" fill="#222" font-size="11" font-weight="500">counter &gt; 5?</text>
+<text x="220" y="561" text-anchor="middle" fill="#555" font-size="9">주의 임계</text>
+
+<!-- Yes → State=1 -->
+<line x1="120" y1="550" x2="60" y2="550" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="89" y="542" text-anchor="middle" fill="#555" font-size="9">Yes</text>
+<rect x="18" y="532" width="86" height="30" rx="5" fill="#F57F17"/>
+<text x="61" y="552" text-anchor="middle" fill="white" font-size="11">State = 1</text>
+<text x="61" y="563" text-anchor="middle" fill="#FFF9C4" font-size="8">주의</text>
+
+<!-- No → State=0 -->
+<line x1="220" y1="580" x2="220" y2="610" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="235" y="599" fill="#555" font-size="9">No</text>
+<rect x="140" y="612" width="150" height="30" rx="5" fill="#1B8A6B"/>
+<text x="215" y="632" text-anchor="middle" fill="white" font-size="11">State = 0</text>
+<text x="215" y="643" text-anchor="middle" fill="#A5D6A7" font-size="8">정상</text>
+
+<!-- ── Drowsy mode column (center x=664) ── -->
+
+<!-- 졸음 진입 박스 -->
+<rect x="524" y="448" width="280" height="44" rx="6" fill="#B71C1C"/>
+<text x="664" y="466" text-anchor="middle" fill="white" font-size="12" font-weight="500">is_drowsy = True</text>
+<text x="664" y="482" text-anchor="middle" fill="#FFCDD2" font-size="9">frozen_threshold = current_threshold</text>
+<line x1="664" y1="492" x2="664" y2="516" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+
+<!-- history 중단 안내 -->
+<rect x="524" y="518" width="280" height="38" rx="6" fill="#E53935"/>
+<text x="664" y="535" text-anchor="middle" fill="white" font-size="12" font-weight="500">ear_history 업데이트 중단</text>
+<text x="664" y="549" text-anchor="middle" fill="#FFCDD2" font-size="9">threshold 오염 방지</text>
+<line x1="664" y1="556" x2="664" y2="580" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+
+<!-- Diamond: EAR > frozen_threshold? center=(664,612) -->
+<polygon points="664,580 779,612 664,644 549,612" fill="white" stroke="#B71C1C" stroke-width="1.5"/>
+<text x="664" y="608" text-anchor="middle" fill="#222" font-size="11" font-weight="500">EAR &gt; frozen_threshold?</text>
+<text x="664" y="623" text-anchor="middle" fill="#555" font-size="9">눈 뜸 감지</text>
+
+<!-- Yes → recovery_counter++ -->
+<line x1="664" y1="644" x2="664" y2="666" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="678" y="659" fill="#555" font-size="9">Yes</text>
+<rect x="544" y="668" width="200" height="30" rx="5" fill="#7B1FA2"/>
+<text x="644" y="688" text-anchor="middle" fill="white" font-size="11">recovery_counter++</text>
+
+<!-- No → counter=0 -->
+<line x1="779" y1="612" x2="850" y2="612" stroke="#444" stroke-width="1.5"/>
+<line x1="850" y1="612" x2="850" y2="716" stroke="#444" stroke-width="1.5"/>
+<line x1="850" y1="716" x2="796" y2="716" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="817" y="604" text-anchor="middle" fill="#555" font-size="9">No</text>
+<rect x="756" y="688" width="130" height="30" rx="5" fill="#616161"/>
+<text x="821" y="708" text-anchor="middle" fill="white" font-size="11">counter = 0</text>
+
+<!-- Diamond: counter >= 10? center=(664,748) -->
+<line x1="644" y1="698" x2="644" y2="722" stroke="#444" stroke-width="1.5"/>
+<line x1="644" y1="722" x2="664" y2="722" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<polygon points="664,722 774,752 664,782 554,752" fill="white" stroke="#7B1FA2" stroke-width="1.5"/>
+<text x="664" y="748" text-anchor="middle" fill="#222" font-size="11" font-weight="500">counter ≥ 10?</text>
+<text x="664" y="763" text-anchor="middle" fill="#555" font-size="9">~0.7초 눈 뜬 상태 유지</text>
+
+<!-- No → State=2 -->
+<line x1="774" y1="752" x2="848" y2="752" stroke="#B71C1C" stroke-width="1.5" marker-end="url(#ar)"/>
+<text x="812" y="744" text-anchor="middle" fill="#B71C1C" font-size="9">No</text>
+<rect x="846" y="734" width="40" height="30" rx="5" fill="#B71C1C"/>
+<text x="866" y="754" text-anchor="middle" fill="white" font-size="10">2</text>
+<text x="866" y="765" text-anchor="middle" fill="#FFCDD2" font-size="8">위험</text>
+
+<!-- Yes → 복귀 -->
+<line x1="664" y1="782" x2="664" y2="808" stroke="#1B5E20" stroke-width="1.5" marker-end="url(#ag)"/>
+<text x="678" y="799" fill="#1B5E20" font-size="9">Yes</text>
+<rect x="524" y="810" width="280" height="42" rx="6" fill="#1B5E20"/>
+<text x="664" y="828" text-anchor="middle" fill="white" font-size="12" font-weight="500">is_drowsy = False</text>
+<text x="664" y="844" text-anchor="middle" fill="#A5D6A7" font-size="9">frozen_threshold = None → State = 0</text>
+
+<!-- State=2 in drowsy mode (continuing state) -->
+<rect x="456" y="734" width="90" height="30" rx="5" fill="#B71C1C"/>
+<text x="501" y="754" text-anchor="middle" fill="white" font-size="11">State = 2</text>
+<text x="501" y="765" text-anchor="middle" fill="#FFCDD2" font-size="8">위험 지속</text>
+<line x1="554" y1="752" x2="546" y2="752" stroke="#B71C1C" stroke-width="1.5" marker-end="url(#ar)"/>
+
+<!-- Transition arrow: Normal→Drowsy (졸음 진입) at y=466 -->
+<!-- Already drawn as right arrow from counter>=20 diamond -->
+
+<!-- Return arrow note -->
+<text x="664" y="856" text-anchor="middle" fill="#1B5E20" font-size="9">↑ 다음 프레임부터 is_drowsy=False로 정상 모드 복귀</text>
+</svg>

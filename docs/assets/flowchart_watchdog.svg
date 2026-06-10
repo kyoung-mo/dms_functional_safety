@@ -1,0 +1,162 @@
+<svg viewBox="0 0 800 780" xmlns="http://www.w3.org/2000/svg"
+     font-family="'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',Arial,sans-serif">
+<rect width="800" height="780" fill="white"/>
+<defs>
+  <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M0,1 L9,5 L0,9 z" fill="#444"/>
+  </marker>
+  <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M0,1 L9,5 L0,9 z" fill="#B71C1C"/>
+  </marker>
+  <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+    <path d="M0,1 L9,5 L0,9 z" fill="#1B5E20"/>
+  </marker>
+</defs>
+
+<!-- Title -->
+<text x="400" y="24" text-anchor="middle" fill="#222" font-size="15" font-weight="500">Watchdog / Failsafe 동작 흐름</text>
+<text x="400" y="42" text-anchor="middle" fill="#555" font-size="10">stm32 / Core / Src / freertos.c</text>
+
+<!-- Column backgrounds -->
+<rect x="12" y="58" width="372" height="706" rx="10" fill="#FFF3E0" stroke="#E65100" stroke-width="1" stroke-dasharray="5 3"/>
+<text x="24" y="74" fill="#E65100" font-size="10" font-weight="500">Task_Watchdog  ·  TIM2 100ms 인터럽트</text>
+<text x="24" y="86" fill="#E65100" font-size="9">우선순위 최상위 (5)</text>
+
+<rect x="416" y="58" width="372" height="706" rx="10" fill="#E3F2FD" stroke="#1565C0" stroke-width="1" stroke-dasharray="5 3"/>
+<text x="428" y="74" fill="#1565C0" font-size="10" font-weight="500">Task_UART_Rx  ·  HAL_UART_Receive_IT</text>
+<text x="428" y="86" fill="#1565C0" font-size="9">우선순위 중간 (3)</text>
+
+<!-- ── LEFT COLUMN: TIM2 Watchdog ── -->
+
+<!-- TIM2 인터럽트 트리거 -->
+<rect x="72" y="100" width="252" height="36" rx="18" fill="#E65100"/>
+<text x="198" y="118" text-anchor="middle" fill="white" font-size="12" font-weight="500">TIM2 인터럽트 발생</text>
+<text x="198" y="130" text-anchor="middle" fill="#FFE0B2" font-size="9">100ms 마다</text>
+<line x1="198" y1="136" x2="198" y2="162" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+
+<!-- hb_counter-- -->
+<rect x="88" y="164" width="220" height="36" rx="6" fill="#BF360C"/>
+<text x="198" y="180" text-anchor="middle" fill="white" font-size="12" font-weight="500">hb_counter--</text>
+<text x="198" y="193" text-anchor="middle" fill="#FFCCBC" font-size="9">카운터 감소 (초기값=5)</text>
+<line x1="198" y1="200" x2="198" y2="226" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+
+<!-- Diamond: counter == 0? center=(198,258), hw=110, hh=32 -->
+<polygon points="198,226 308,258 198,290 88,258" fill="white" stroke="#E65100" stroke-width="1.5"/>
+<text x="198" y="254" text-anchor="middle" fill="#222" font-size="11" font-weight="500">hb_counter == 0?</text>
+<text x="198" y="269" text-anchor="middle" fill="#555" font-size="9">500ms 경과 여부</text>
+
+<!-- No: left end -->
+<line x1="88" y1="258" x2="30" y2="258" stroke="#444" stroke-width="1.5"/>
+<line x1="30" y1="258" x2="30" y2="136" stroke="#444" stroke-width="1.5"/>
+<line x1="30" y1="136" x2="70" y2="136" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="57" y="250" text-anchor="middle" fill="#555" font-size="9">No</text>
+<rect x="24" y="156" width="46" height="28" rx="4" fill="#888"/>
+<text x="47" y="174" text-anchor="middle" fill="white" font-size="9">대기</text>
+
+<!-- Yes: down (Failsafe) -->
+<line x1="198" y1="290" x2="198" y2="314" stroke="#B71C1C" stroke-width="1.5" marker-end="url(#ar)"/>
+<text x="212" y="306" fill="#B71C1C" font-size="9">Yes (단절)</text>
+
+<!-- failsafe_flag = True -->
+<rect x="78" y="316" width="240" height="36" rx="6" fill="#B71C1C"/>
+<text x="198" y="334" text-anchor="middle" fill="white" font-size="12" font-weight="500">failsafe_flag = True</text>
+<text x="198" y="347" text-anchor="middle" fill="#FFCDD2" font-size="9">Failsafe 상태 진입</text>
+<line x1="198" y1="352" x2="198" y2="376" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+
+<!-- CAN DTC 송출 -->
+<rect x="68" y="378" width="260" height="40" rx="6" fill="#7F0000"/>
+<text x="198" y="396" text-anchor="middle" fill="white" font-size="12" font-weight="500">CAN 0x7DF 송출</text>
+<text x="198" y="411" text-anchor="middle" fill="#FFCDD2" font-size="9">DTC_CODE=0xFF01 · UDS 포맷</text>
+<line x1="198" y1="418" x2="198" y2="442" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+
+<!-- LED 소등 -->
+<rect x="88" y="444" width="220" height="36" rx="6" fill="#B71C1C"/>
+<text x="198" y="462" text-anchor="middle" fill="white" font-size="12" font-weight="500">LED 소등</text>
+<text x="198" y="475" text-anchor="middle" fill="#FFCDD2" font-size="9">PB14 → LOW · 상태 불명</text>
+<line x1="198" y1="480" x2="198" y2="504" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+
+<!-- Task_Alert 알림 -->
+<rect x="68" y="506" width="260" height="36" rx="6" fill="#BF360C"/>
+<text x="198" y="524" text-anchor="middle" fill="white" font-size="12" font-weight="500">Task_Alert 큐 전달</text>
+<text x="198" y="537" text-anchor="middle" fill="#FFCCBC" font-size="9">경고 패턴 변경 알림</text>
+
+<!-- Failsafe 유지 note -->
+<rect x="60" y="580" width="276" height="46" rx="6" fill="#FBE9E7" stroke="#E65100" stroke-width="1"/>
+<text x="198" y="600" text-anchor="middle" fill="#BF360C" font-size="10" font-weight="500">Failsafe 상태 유지</text>
+<text x="198" y="616" text-anchor="middle" fill="#555" font-size="9">UART 수신 재개 시 → 자동 해제</text>
+<text x="198" y="628" text-anchor="middle" fill="#555" font-size="8">(오른쪽 컬럼에서 hb_counter 리셋)</text>
+
+<!-- ── RIGHT COLUMN: UART Rx ── -->
+
+<!-- UART Rx 인터럽트 -->
+<rect x="476" y="100" width="252" height="36" rx="18" fill="#1565C0"/>
+<text x="602" y="118" text-anchor="middle" fill="white" font-size="12" font-weight="500">UART Rx 인터럽트 발생</text>
+<text x="602" y="130" text-anchor="middle" fill="#BBDEFB" font-size="9">HAL_UART_Receive_IT</text>
+<line x1="602" y1="136" x2="602" y2="162" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+
+<!-- Diamond: Sync == 0xAA? center=(602,194), hw=108, hh=30 -->
+<polygon points="602,162 710,194 602,226 494,194" fill="white" stroke="#1565C0" stroke-width="1.5"/>
+<text x="602" y="190" text-anchor="middle" fill="#222" font-size="11" font-weight="500">Sync == 0xAA?</text>
+<text x="602" y="205" text-anchor="middle" fill="#555" font-size="9">동기 바이트 확인</text>
+
+<!-- No → 폐기 -->
+<line x1="710" y1="194" x2="766" y2="194" stroke="#444" stroke-width="1.5"/>
+<line x1="766" y1="194" x2="766" y2="130" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="740" y="186" text-anchor="middle" fill="#555" font-size="9">No</text>
+<rect x="726" y="108" width="60" height="26" rx="4" fill="#888"/>
+<text x="756" y="126" text-anchor="middle" fill="white" font-size="10">폐기</text>
+
+<!-- Yes: down -->
+<line x1="602" y1="226" x2="602" y2="252" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="616" y="243" fill="#555" font-size="9">Yes</text>
+
+<!-- Diamond: Checksum OK? center=(602,282) -->
+<polygon points="602,252 710,282 602,312 494,282" fill="white" stroke="#1565C0" stroke-width="1.5"/>
+<text x="602" y="278" text-anchor="middle" fill="#222" font-size="11" font-weight="500">Checksum OK?</text>
+<text x="602" y="293" text-anchor="middle" fill="#555" font-size="9">XOR(Byte1~3) 검증</text>
+
+<!-- No → 폐기 -->
+<line x1="710" y1="282" x2="766" y2="282" stroke="#444" stroke-width="1.5"/>
+<line x1="766" y1="282" x2="766" y2="220" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="740" y="274" text-anchor="middle" fill="#555" font-size="9">No</text>
+<rect x="726" y="198" width="60" height="26" rx="4" fill="#888"/>
+<text x="756" y="216" text-anchor="middle" fill="white" font-size="10">폐기</text>
+
+<!-- Yes: down -->
+<line x1="602" y1="312" x2="602" y2="338" stroke="#1B5E20" stroke-width="1.5" marker-end="url(#ag)"/>
+<text x="616" y="329" fill="#1B5E20" font-size="9">Yes (유효)</text>
+
+<!-- hb_counter = MAX -->
+<rect x="482" y="340" width="240" height="36" rx="6" fill="#1B5E20"/>
+<text x="602" y="357" text-anchor="middle" fill="white" font-size="12" font-weight="500">hb_counter = MAX (5)</text>
+<text x="602" y="370" text-anchor="middle" fill="#C8E6C9" font-size="9">Heartbeat 타이머 리셋</text>
+<line x1="602" y1="376" x2="602" y2="400" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+
+<!-- failsafe_flag = False -->
+<rect x="482" y="402" width="240" height="36" rx="6" fill="#2E7D32"/>
+<text x="602" y="420" text-anchor="middle" fill="white" font-size="12" font-weight="500">failsafe_flag = False</text>
+<text x="602" y="433" text-anchor="middle" fill="#C8E6C9" font-size="9">Failsafe 해제</text>
+<line x1="602" y1="438" x2="602" y2="462" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+
+<!-- State, EAR 파싱 -->
+<rect x="472" y="464" width="260" height="38" rx="6" fill="#1565C0"/>
+<text x="602" y="481" text-anchor="middle" fill="white" font-size="12" font-weight="500">State, EAR 파싱</text>
+<text x="602" y="496" text-anchor="middle" fill="#BBDEFB" font-size="9">frame[1]=State · frame[2]=EAR×100</text>
+<line x1="602" y1="502" x2="602" y2="526" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+
+<!-- Task Queue 전달 -->
+<rect x="472" y="528" width="260" height="38" rx="6" fill="#0D47A1"/>
+<text x="602" y="546" text-anchor="middle" fill="white" font-size="12" font-weight="500">Task Queue 전달</text>
+<text x="602" y="561" text-anchor="middle" fill="#BBDEFB" font-size="9">Task_CAN_Tx · Task_Alert 처리</text>
+
+<!-- Note box -->
+<rect x="464" y="600" width="276" height="60" rx="6" fill="#E3F2FD" stroke="#1565C0" stroke-width="1"/>
+<text x="602" y="620" text-anchor="middle" fill="#1565C0" font-size="10" font-weight="500">UART 수신 정상 시 동작</text>
+<text x="602" y="636" text-anchor="middle" fill="#555" font-size="9">· LED 상태 업데이트 (Task_Alert)</text>
+<text x="602" y="650" text-anchor="middle" fill="#555" font-size="9">· CAN 0x100 송신 (Task_CAN_Tx)</text>
+
+<!-- Connection between columns note -->
+<line x1="384" y1="450" x2="480" y2="380" stroke="#666" stroke-width="1" stroke-dasharray="4 3"/>
+<text x="432" y="426" text-anchor="middle" fill="#666" font-size="8">UART 수신 시 →</text>
+<text x="432" y="436" text-anchor="middle" fill="#666" font-size="8">Failsafe 자동 해제</text>
+</svg>
