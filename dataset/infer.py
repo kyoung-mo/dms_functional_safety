@@ -6,15 +6,17 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--id', required=True, help='촬영자 ID (예: kym)')
 args = parser.parse_args()
 
-save_dir = "./dark"
+save_dir = "./infer_data"
 os.makedirs(save_dir, exist_ok=True)
 
-# 1단계: open 20장
+# 1단계: open 500장
 print(f"[open] 촬영 시작 - {args.id}_open000.jpg ~")
 subprocess.run([
     "rpicam-still",
     "--timelapse", "100",
-    "--timeout", "10000",
+    "--timeout", "250000",
+    "--width", "640",
+    "--height", "480",
     "--nopreview",
     "-o", f"{save_dir}/{args.id}_open%03d.jpg"
 ])
@@ -26,12 +28,14 @@ while True:
     if key == "N":
         break
 
-# 2단계: closed 20장
+# 2단계: closed 500장
 print(f"[closed] 촬영 시작 - {args.id}_close000.jpg ~")
 subprocess.run([
     "rpicam-still",
     "--timelapse", "100",
-    "--timeout", "10000",
+    "--timeout", "250000",
+    "--width", "640",
+    "--height", "480",
     "--nopreview",
     "-o", f"{save_dir}/{args.id}_close%03d.jpg"
 ])

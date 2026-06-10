@@ -5,8 +5,7 @@ dms_env/
 **/WIDER_val/
 **/WIDER_val.zip
 **/calib_*/
-dataset/dark
-dataset/bright
+dataset/infer_data
 
 # 로그
 *.log
