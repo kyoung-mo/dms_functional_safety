@@ -1,8 +1,8 @@
-# 대형 트럭 졸음운전 감지 · 중앙 관제 플랫폼
+# Edge-AI 기반 대형 트럭 졸음운전 감지 · 주행 분석 플랫폼
 
-> RPi5(Hailo-8 NPU) + STM32(FreeRTOS) + CAN Bus + 중앙 관제 서버  
-> 상용차 운전자 피로도 실시간 감지 · 기능안전 제어 · 통합 모니터링 시스템  
-> Intel AI SW Academy 9기 3차 프로젝트 (2026.05.31. ~ 2026.06.15.)
+> RPi5(Hailo-8 NPU) + STM32(FreeRTOS) + CAN Bus + Firebase 기반  
+> 상용차 운전자 피로도 실시간 감지 · 기능안전 제어 · 주행 이벤트 분석 시스템  
+> Intel AI SW Academy 9기 3차 프로젝트 (2026.06)
 
 ---
 
@@ -31,16 +31,17 @@
 
 ## 💡 Motivation
 
-대형 트럭·버스 등 상용차의 졸음운전 사고는 일반 승용차 대비 사망 사고 비율이 현저히 높다. 장거리 운행, 야간 운행이 잦은 상용차 특성상 운전자 피로 누적은 구조적인 안전 문제다.
+대형 트럭·버스 등 상용차의 졸음운전 사고는 일반 승용차 대비 사망 사고 비율이 현저히 높다.
+장거리·야간 운행이 잦은 상용차 특성상 운전자 피로 누적은 구조적인 안전 문제다.
 
-기존 단일 장치 기반 졸음 감지 솔루션은 두 가지 핵심 한계를 가진다.
+기존 단일 장치 기반 졸음 감지 솔루션은 **단일 장애점(SPOF)** 문제를 갖는다.
+감지 장치 자체가 다운되면 경고 출력도 함께 멈추기 때문이다.
 
-- **단일 장애점(SPOF)** — 감지 장치 자체가 다운되면 경고 출력도 함께 멈춘다
-- **데이터 고립** — 차량별 이벤트가 분산되어 Fleet 전체의 위험 패턴을 통합 분석할 수 없다
+본 프로젝트는 이 문제를 구조 설계로 해결한다.
 
-본 프로젝트는 이 두 문제를 구조 설계로 해결한다.
-
-👉 **AI 추론(비결정적) 노드와 안전 제어(결정적) 노드를 물리적으로 분리**하여, AI가 다운되어도 안전 기능은 독립 동작한다. 차량 단 엣지 처리 결과는 CAN을 통해 관제 노드로 전달되고, 관제 서버가 Fleet 전체 이벤트를 수집·분석한다.
+👉 **AI 추론 노드(비결정적)와 안전 제어 노드(결정적)를 물리적으로 분리**하여,
+AI가 다운돼도 STM32는 독립적으로 Heartbeat를 감시하고 CAN DTC를 송출한다.
+졸음 이벤트와 GPS 위치는 Firebase에 실시간 저장되고, 관제 센터 웹 대시보드에서 다수 운전자의 주행 이력을 통합 조회할 수 있다.
 
 > "단순히 감지하는 시스템이 아니라, 감지 시스템 자체가 고장 나도 안전한 구조"
 
@@ -48,158 +49,140 @@
 
 ## 📌 Key Features
 
-- **Edge-AI 실시간 추론** — Hailo-8 NPU, YOLOv8-face + face_landmarks_lite 듀얼 모델, 13.4 FPS (CPU 대비 2.96배)
+- **Edge-AI 실시간 추론** — Hailo-8 NPU (HEF+HEF), CPU 대비 **4.3배** 향상, 59.9 FPS (AI 파이프라인 기준)
 - **기능안전 (Fail-safe)** — AI·안전 노드 물리 분리, Heartbeat 감시, FreeRTOS 우선순위 스케줄링, DTC 자동 송출
 - **차량 도메인 통신** — CAN Bus 500kbps, DBC 기반 메시지 정의, SN65HVD230 트랜시버
-- **Fleet 중앙 관제** — 다수 차량 졸음 이벤트 실시간 수집 · GPS 위치 기록 · 통합 대시보드
+- **Firebase 관제 대시보드** — 운전자별 주행 세션·GPS 경로·졸음 이벤트 Firebase 저장, 웹 관제 센터 조회
 
 ---
 
 ## 🏗️ Architecture
 
 <!-- 시스템 아키텍처 이미지 -->
+<img src="./docs/assets/system_architecture.svg" width="100%"/>
 
 | 노드 | 보드 | 역할 | 설계 원칙 |
 |---|---|---|---|
 | RPi5 졸음 인식 노드 | Raspberry Pi 5 + Hailo-8 NPU | AI 추론 — YOLOv8-face / face_landmarks_lite / PERCLOS 판정 / UART 송신 | AI는 추론만. 안전 판단·경고 출력은 STM32가 전담 |
 | STM32 안전 제어 노드 | B-L475E-IOT01A2 (STM32L476) | FreeRTOS — UART Rx / CAN Tx / Heartbeat 감시 / DTC 송출 | AI 노드 다운과 무관하게 독립 동작. 결정적 실시간성 보장 |
-| RPi5 네비 노드 | Raspberry Pi 5 + MCP2515 | 관제 연동 — CAN 수신 / Kakao Maps / Firebase GPS / SQLite 이벤트 로그 | 엣지 처리 결과를 관제 서버로 릴레이. 위치 기반 분석 |
-| 중앙 관제 서버 | Flask + Firebase + SQLite | Fleet 대시보드 — 다수 차량 통합 모니터링 / 졸음 이벤트 · 위험 구간 분석 | 차량별 엣지 처리 결과 수집·집계. 패턴 분석 |
+| RPi5 네비 노드 | Raspberry Pi 5 + MCP2515 | 네비게이션 — CAN 수신 / Kakao Maps / Firebase GPS·이벤트 저장 / SQLite 로그 | 졸음 이벤트·GPS를 Firebase에 업로드 → 관제 센터 웹에서 통합 조회 |
 
 ---
 
 ## 🔄 System Flow
 
-<img width="1089" height="893" alt="image" src="https://github.com/user-attachments/assets/f562aa69-d833-4da4-83cd-2e3356f0bf6a" />
+```
+[RPi5 졸음 인식 노드]
+ 카메라 → YOLOv8-face(NPU) → 얼굴 크롭 → face_landmarks_lite(NPU) → EAR 468점 → PERCLOS 판정
+                                                                                      │
+                                               UART 바이너리 프레임 (100ms 주기)
+                                            [0xAA | State | EAR×100 | Seq | Checksum]
+                                                                                      ▼
+[STM32 안전 제어 노드 — FreeRTOS 4-Task]
+ ┌─ Task_Watchdog  (Highest) ─ UART Heartbeat 500ms 감시 → 단절 시 DTC 0x7DF CAN 송출
+ ├─ Task_CAN_Tx   (High)    ─ 졸음 상태 CAN 0x100 100ms 주기 송신
+ ├─ Task_UART_Rx  (Medium)  ─ RPi5 바이너리 프레임 수신 · Queue 전달
+ └─ Task_Alert    (Medium)  ─ LED 상태 표시 (0=꺼짐 / 1=500ms 깜빡 / 2=점등)
+                                                              │
+                                                   CAN Bus 500kbps
+                                                              ▼
+[RPi5 네비 노드]
+ MCP2515 CAN 수신 → Flask/SocketIO → 카카오맵 JS → 졸음 이벤트 마커 실시간 표시
+                                   → Firebase /sessions/{driver_id}/{session_id}/events → 졸음 이벤트 저장
+                                   → Firebase /sessions/{driver_id}/{session_id}/gps_path → GPS 경로 저장
+
+[삼성폰 PWA]
+ geolocation → Firebase /gps/{driver_id} (실시간 현재 위치)
+ RPi5 네비가 2초 폴링 → 카카오맵 경로 실시간 표시
+
+[관제 센터 웹]
+ Firebase /drivers, /sessions, /gps 직접 조회
+ → 운전자별 주행 세션 / GPS 경로 / 졸음 이벤트 이력 통합 대시보드
+```
 
 ---
 
-## 📡 CAN Protocol
+## 📡 CAN 메시지 정의
 
-통신 속도: **500 kbps** / DBC 파일 기반 메시지 정의 (Vector CANdb++) / SN65HVD230 트랜시버
+통신 속도: **500 kbps** / DBC 파일 기반 (Vector CANdb++) / SN65HVD230 트랜시버
 
-| CAN ID | 내용 | 송신 | 수신 | 주기 |
-|---|---|---|---|---|
-| **0x100** | 졸음 상태 (State: 0=정상 / 1=주의 / 2=위험) + EAR 값 | STM32 | RPi5 네비 | 100ms |
-| **0x101** | 수신 ACK | RPi5 네비 | STM32 | 수신 시마다 |
-| **0x7DF** | DTC 송출 — Heartbeat 단절 (AI 노드 다운 감지) | STM32 | CAN Bus | 이벤트 |
+| CAN ID | 메시지 명 | 방향 | 주기 | 구분 | 설명 |
+|---|---|---|---|---|---|
+| `0x100` | `DMS_State` | STM32 → RPi5 네비 | 100ms | **구현** | 졸음 상태 (0=정상/1=주의/2=위험) + EAR 값 |
+| `0x101` | `DMS_ACK` | RPi5 네비 → STM32 | 수신 시마다 | **구현** | 수신 확인 ACK |
+| `0x7DF` | `DMS_DTC` | STM32 → CAN Bus | 이벤트 | **구현** | 고장 코드 (Heartbeat 단절 감지 시) |
+| `0x200` | `DMS_ECU_Heartbeat` | STM32 → RPi5 네비 | 500ms | 예정 | STM32 생존 확인 (역방향 Heartbeat) |
+| `0x110` | `DMS_SystemStatus` | STM32 → RPi5 네비 | 1000ms | 예정 | 시스템 헬스 (AI 노드 연결·카메라·Failsafe) |
+| `0x120` | `DMS_Session` | STM32 → CAN Bus | 이벤트 | 예정 | 주행 세션 시작·종료 |
+| `0x102` | `DMS_Driver_Response` | RPi5 네비 → STM32 | 이벤트 | 예정 | 운전자 경고 확인 (터치 버튼 → 알림 리셋) |
 
-> **0x7DF 선택 이유**: UDS(ISO 14229) 표준 진단 요청 ID를 차용. 실차 진단 장비와 호환되는 고장 코드 포맷으로 설계하여 확장성 확보.
+> `0x7DF`: UDS(ISO 14229) 표준 진단 요청 ID 차용 → 실차 진단 장비 호환.
 
 ---
 
 ## ⚙️ 핵심 기능
 
 **Edge-AI 추론 파이프라인**
-- Hailo-8 NPU에서 YOLOv8-face + face_landmarks_lite 듀얼 모델 동시 실행 (VDevice 공유, 번갈아 activate)
+- Hailo-8 NPU에서 YOLOv8-face + face_landmarks_lite 듀얼 모델 동시 실행 (VDevice 공유)
 - ONNX → HAR → HEF 변환 파이프라인 직접 구축 (Hailo DFC 3.33.1, Model Zoo 2.18.0)
-- PERCLOS: 동적 임계값 (상위 10% EAR × 0.75, 히스테리시스 적용), 1.5초 지속 시 졸음 판정 (3단계: 0/1/2)
-- NPU 추론 속도: CPU 대비 **2.96배 향상**, Headless 모드 **13.4 FPS**
-- 보정 데이터: WIDER_val 얼굴 크롭 300장 → Haar Cascade 대비 오탐 30% 감소
+- PERCLOS: 동적 임계값 (상위 10% EAR × 0.75), 1.5초 지속 시 졸음 판정 (3단계)
+- EAR 고정 임계값 0.223 (1000장 데이터셋 기반 최적 임계값 탐색, F1 79.5% 최고점)
 
 **FreeRTOS 기반 기능안전**
-- 4개 태스크 우선순위 스케줄링 — AI 연산 부하가 급증해도 안전 기능(CAN 송신 · DTC 송출)은 지연 없이 동작
-- Heartbeat 감시: AI 노드 UART 프레임 500ms 미수신 → Failsafe 진입 → DTC CAN 0x7DF 송출
+- 4개 태스크 우선순위 스케줄링 — AI 연산 부하와 무관하게 안전 기능 지연 없이 동작
+- Heartbeat 감시: AI 노드 UART 프레임 500ms 미수신 → Failsafe → DTC `0x7DF` 송출
 - UART 바이너리 프레임: 고정 5바이트 [0xAA, State, EAR×100, Seq, Checksum], 100ms 주기
 
-**Fleet 중앙 관제 연동**
-- 졸음 이벤트 발생 GPS 좌표를 SQLite에 기록 → 카카오맵에 실시간 핀 표시, 5초 쿨다운 기반 세션 집계
-- 삼성폰 PWA geolocation → Firebase Realtime DB → RPi5 네비 폴링 (HTTPS Mixed Content 우회)
-- 중앙 관제 서버: 다수 차량 이벤트 수집 · 위험 구간 통계 · 운전자별 피로도 이력 관리
-
-**확장 (여유 시):** MobileFaceNet 기반 운전자 인식 + 개인 캘리브레이션, MAR(하품) / Head Pose 지표, UDS 진단 서브셋
-
----
-
-## 🛠️ STM32 안전 제어 노드 상세
-
-### FreeRTOS 태스크 구조
-
-| 태스크 | 우선순위 | 주기 | 역할 |
-|---|---|---|---|
-| `Task_Watchdog` | 최상위 | 100ms | Heartbeat 감시, 500ms 단절 시 Failsafe 진입 + DTC CAN 송출 |
-| `Task_CAN_Tx` | 높음 | 100ms | 졸음 상태 CAN 0x100 송신 (DBC 인코딩) |
-| `Task_UART_Rx` | 보통 | 인터럽트 기반 | RPi5 바이너리 프레임 수신 · 상태머신 파싱 · Queue 전달 |
-| `Task_Alert` | 보통 | 100ms | LED 상태 표시 (State 0=꺼짐 / 1=500ms 깜빡 / 2=점등) |
-
-### 핀맵
-
-| 기능 | 핀 | CubeMX 설정 | 연결 대상 |
-|---|---|---|---|
-| CAN1_RX/TX | PB8/PB9 | CAN1 500kbps | SN65HVD230 트랜시버 |
-| UART4_TX/RX | PA0/PA1 | 115200/8N1 인터럽트 | RPi5 졸음 인식 노드 (크로스 연결) |
-| TIM2 | — | 500ms 인터럽트 | Heartbeat 타이머 |
-| LED2 | PB14 | GPIO_Output | 졸음 상태 표시 |
-
-> ⚠️ B-L475E-IOT01A2 기본 초기화 시 온보드 UART4(PA0/PA1), SPI1이 핀을 선점함.  
-> 반드시 온보드 주변장치를 비활성화한 상태(`base.ioc`)에서 프로젝트를 시작할 것.
-
-### CubeMX 설정
-
-```
-CAN1:  Prescaler=10, BS1=13TQ, BS2=2TQ  → 500 kbps (SYSCLK 80MHz)
-UART4: 115200/8N1, HAL_UART_Receive_IT (인터럽트 수신)
-TIM2:  Prescaler=8000-1, Period=5000-1  → 500ms @ 80MHz
-Clock: HSI 16MHz → PLL → SYSCLK 80MHz
-FreeRTOS: CMSIS-RTOS v2, configTICK_RATE_HZ=1000
-```
-
-### 주요 파라미터
-
-```c
-#define UART_SYNC_BYTE          0xAA
-#define UART_FRAME_SIZE         5       // [SYNC, State, EAR×100, Seq, Checksum]
-#define HEARTBEAT_TIMEOUT_MS    500     // AI 노드 단절 판정 임계값
-#define CAN_TX_PERIOD_MS        100     // CAN 상태 메시지 송신 주기
-#define EAR_SCALE               100     // EAR 소수점 → 정수 변환 (0.35 → 35)
-#define DTC_ID                  0x7DF   // UDS 표준 진단 요청 ID 차용
-```
+**Firebase 기반 관제 대시보드**
+- 졸음 이벤트·GPS 경로를 Firebase Realtime DB에 저장 (driver_id / session_id 계층 구조)
+- 삼성폰 PWA geolocation → Firebase `/gps/{driver_id}` → RPi5 네비 2초 폴링
+- 관제 센터 웹: 다수 운전자 주행 세션 이력 / GPS 경로 / 졸음 이벤트 위치 통합 조회
 
 ---
 
 ## 🔬 NPU 벤치마크
 
-| 항목 | 결과 |
-|---|---|
-| 추론 FPS (Headless 모드) | **13.4 FPS** |
-| NPU vs CPU 속도 비율 | **2.96배 향상** |
-| 주요 병목 구간 | 카메라 `capture_array()` 블로킹 ~40ms, Python 후처리 ~9ms |
-| 모델 변환 파이프라인 | ONNX → HAR → HEF (DFC 3.33.1, Model Zoo 2.18.0) |
-| 캘리브레이션 데이터 | WIDER_val 얼굴 크롭 300장 (Haar 대비 오탐 30% 감소) |
-| face_landmarks_lite 출력 | conv22: 1404값 (468pts × 3, 0–192px 공간) / conv25: confidence (sigmoid 내장) |
+> 측정 조건: 1000장 정적 이미지 (open=500, close=500), EAR 임계값 0.223  
+> **카메라 캡처 시간·UART 송신 미포함** (AI 추론 파이프라인 기준)
 
----
+### FPS / Latency
 
-## 🚀 빌드 및 실행
+| 환경 | FPS | 평균 Latency | YOLO | LM |
+|---|---|---|---|---|
+| **HEF+HEF** | **59.9** | **16.6ms** | 12.0ms | 4.6ms |
+| HEF+ONNX | 49.0 | 20.3ms | 16.2ms | 4.1ms |
+| ONNX+HEF | 21.0 | 47.5ms | 38.2ms | 9.3ms |
+| ONNX+ONNX (Hailo) | 14.1 | 70.9ms | 65.4ms | 5.5ms |
+| CPU (ONNX+ONNX) | 14.1 | 70.6ms | 65.2ms | 5.4ms |
 
-**RPi5 졸음 인식 노드**
+### 정확도 (EAR 임계값 0.223)
 
-```bash
-# HailoRT 가상환경 활성화 (Python 3.13.5 + HailoRT 4.23.0)
-source ~/dms_env/bin/activate
+| 환경 | Precision | Recall | F1 | Accuracy |
+|---|---|---|---|---|
+| **HEF+HEF** | 63.1% | **98.8%** | 77.0% | 70.5% |
+| HEF+ONNX | 62.4% | 99.4% | 76.6% | 69.7% |
+| ONNX+HEF | 62.7% | 96.8% | 76.1% | 69.6% |
+| ONNX+ONNX (Hailo) | 62.4% | 99.0% | 76.6% | 69.7% |
+| CPU (ONNX+ONNX) | 62.4% | 99.0% | 76.6% | 69.7% |
 
-# 추론 메인 루프 실행
-cd rpi5_ai && python inference/perclos_uart.py
-```
-
-**RPi5 네비 노드**
-
-```bash
-# MCP2515 CAN 인터페이스 활성화
-# /boot/firmware/config.txt 에 아래 추가 후 재부팅:
-# dtoverlay=mcp2515-can0,oscillator=8000000,interrupt=25
-# dtparam=spi=on
-
-sudo ip link set can0 up type can bitrate 500000
-
-# Flask + SocketIO 서버 실행
-cd rpi5_navi && PYTHONPATH=. python flask_server/app.py
-```
-
-**STM32 안전 제어 노드**
+### 핵심 결론
 
 ```
-STM32CubeIDE: 프로젝트 열기 → Build (Release) → Flash (ST-Link/V2)
+HEF+HEF 기준 CPU 대비 추론 속도 4.3배 향상 (14.1 → 59.9 FPS)
+정확도(Recall 98.8%)는 CPU 환경과 동등 수준 유지
+실시간 DMS 요구사항 15 FPS를 NPU 환경에서 충분히 달성
+```
+
+> **실제 배포 FPS (~13 FPS)** 와 벤치마크 FPS(59.9)의 차이는 카메라 캡처 블로킹(~40ms)이 병목.  
+> NPU 추론 자체 속도는 16.6ms 이며, 카메라 I/O를 제외하면 60 FPS 달성 가능.
+
+### 벤치마크 한계
+
+```
+- 카메라 캡처 시간 미포함 (정적 이미지 기준)
+- PERCLOS 누적 계산 미포함
+- 단일 인물 데이터셋 (일반화 제한)
+- 밝은 환경 / 정면 얼굴만 포함
 ```
 
 ---
@@ -208,45 +191,60 @@ STM32CubeIDE: 프로젝트 열기 → Build (Release) → Flash (ST-Link/V2)
 
 ```
 dms_functional_safety/
-├── rpi5_ai/                      # 졸음 인식 노드 (Python)
-│   ├── models/                   # HEF 모델 (YOLOv8-face, face_landmarks_lite)
-│   ├── inference/
-│   │   └── perclos_uart.py       # 추론 메인 루프 (NPU 파이프라인 + UART 송신)
-│   └── comm/                     # UART 바이너리 프레임 정의
-├── rpi5_navi/                    # 네비 · 관제 노드 (Python/Flask)
-│   ├── flask_server/
-│   │   ├── app.py                # Flask + SocketIO + CAN 수신 스레드
-│   │   └── templates/            # 카카오맵 HTML (네비 화면 + 관제 대시보드)
-│   ├── firebase_poll.py          # Firebase GPS 폴링
-│   └── db.py                     # SQLite 이벤트 로그
-├── stm32/                        # 안전 제어 노드 (C, FreeRTOS)
-│   ├── Core/Src/
-│   │   ├── freertos.c            # 4-Task 정의 (Watchdog / CAN Tx / UART Rx / Alert)
-│   │   ├── can.c                 # CAN 송신 (DBC 기반 인코딩)
-│   │   └── uart_parser.c         # 바이너리 프레임 상태머신 파싱
-│   └── dbc/                      # DBC 메시지 정의 (Vector CANdb++)
-├── pwa/                          # GPS 송신 PWA (삼성폰, HTML + JS)
-│   └── index.html                # geolocation → Firebase 업로드
-├── docs/                         # 설계 문서 · 인터페이스 정의서
-└── README.md
+├── conversion/            # ONNX → HEF 모델 변환 파이프라인
+├── dataset/               # 캘리브레이션·벤치마크 이미지
+│   └── infer_data/        # 라벨 이미지 1000장 (*_open.jpg / *_close.jpg)
+├── dbc/                   # CAN 메시지 정의 (DBC, Vector CANdb++)
+├── docs/                  # 설계 문서 · 인터페이스 정의서
+├── rpi5/                  # 졸음 인식 노드 (Python, HailoRT)
+│   ├── models/            # HEF 모델 (YOLOv8-face, face_landmarks_lite)
+│   └── inference/         # 추론 루프, 벤치마크 스크립트
+├── rpi_navi/              # 네비 노드 (Python/Flask)
+│   ├── flask_server/      # Flask + SocketIO + CAN 수신
+│   │   └── templates/     # 카카오맵 네비 + 관제 센터 웹
+│   └── firebase_gps.py    # Firebase GPS·이벤트 저장
+└── stm32/                 # 안전 제어 노드 (C, FreeRTOS)
+```
+
+---
+
+## 🚀 빠른 시작
+
+**RPi5 졸음 인식 노드**
+```bash
+source ~/dms_env/bin/activate
+cd rpi5 && python inference/perclos_uart.py
+```
+
+**RPi5 네비 노드**
+```bash
+sudo ip link set can0 up type can bitrate 500000
+cd rpi_navi && PYTHONPATH=. python flask_server/app.py
+```
+
+**STM32 안전 제어 노드**
+```
+STM32CubeIDE: Build → Flash (ST-Link/V2)
 ```
 
 ---
 
 ## 🛠️ 개발 환경
 
-- **졸음 인식 노드:** Raspberry Pi 5, Python 3.13.5, HailoRT 4.23.0
-- **모델 변환:** WSL Ubuntu 24.04, Python 3.10, Hailo DFC 3.33.1, Model Zoo 2.18.0
-- **안전 제어 노드:** STM32L476 (B-L475E-IOT01A2), FreeRTOS, STM32CubeIDE
-- **네비 노드:** Raspberry Pi 5, Python 3.13.5, Flask + SocketIO, SQLite, MCP2515 (SPI0, 8MHz)
-- **GPS PWA:** 삼성 갤럭시, Chrome, Firebase Realtime DB
+| 항목 | 내용 |
+|---|---|
+| 졸음 인식 노드 | Raspberry Pi 5, Python 3.13.5, HailoRT 4.23.0 |
+| 모델 변환 | WSL Ubuntu 24.04, Python 3.10, Hailo DFC 3.33.1 |
+| 안전 제어 노드 | STM32L476 (B-L475E-IOT01A2), FreeRTOS, STM32CubeIDE |
+| 네비 노드 | Raspberry Pi 5, Python 3.13.5, Flask + SocketIO, MCP2515 |
+| GPS / 관제 | 삼성 갤럭시 PWA, Chrome, Firebase Realtime DB |
 
 ---
 
 ## 🎯 산출물
 
-- 실행 가능한 3-노드 프로토타입 (RPi5 AI 추론 + STM32 FreeRTOS 안전 제어 + 네비/관제 연동)
-- DBC 파일 및 UART 인터페이스 정의서
-- NPU vs CPU 벤치마크 결과 (2.96배 향상, 13.4 FPS, Headless)
-- 실시간 카카오맵 네비게이션 + Fleet 중앙 관제 대시보드
+- 실행 가능한 3-노드 프로토타입 (RPi5 AI 추론 + STM32 FreeRTOS 안전 제어 + 네비 연동)
+- DBC 파일 및 UART 인터페이스 정의서 (구현 3개 + 예정 4개 메시지)
+- 5가지 환경 NPU 벤치마크 결과 (HEF+HEF CPU 대비 4.3배 향상)
+- 실시간 카카오맵 네비게이션 + Firebase 기반 관제 센터 웹 대시보드
 - 기술 블로그 ([Velog](https://velog.io/@mommers))

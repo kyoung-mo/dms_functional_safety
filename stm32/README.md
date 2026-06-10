@@ -20,7 +20,7 @@
 
 STM32L476 마이크로컨트롤러에 FreeRTOS를 올려 **4개의 우선순위 태스크**로 안전 제어를 담당한다.
 
-AI 노드(RPi5)가 다운되거나 응답이 끊겨도 **Watchdog Task가 독립적으로 동작**하여  
+AI 노드(RPi5)가 다운되거나 응답이 끊겨도 **Watchdog Task가 독립적으로 동작**하며
 CAN DTC(`0x7DF`)를 자동 송출한다. AI 연산 부하에 관계없이 안전 기능이 항상 보장된다.
 
 ---
@@ -30,9 +30,42 @@ CAN DTC(`0x7DF`)를 자동 송출한다. AI 연산 부하에 관계없이 안전
 | 태스크 | 우선순위 | 주기 | 역할 |
 |---|---|---|---|
 | `Task_Watchdog` | **최상위 (5)** | 100ms | Heartbeat 감시, 500ms 단절 시 Failsafe + DTC `0x7DF` 송출 |
-| `Task_CAN_Tx` | 높음 (4) | 100ms | 졸음 상태 CAN `0x100` 송신 (DBC 인코딩) |
+| `Task_CAN_Tx` | 높음 (4) | 100ms | 졸음 상태 CAN `0x100` 송신, ECU Heartbeat `0x200` 송신 (예정) |
 | `Task_UART_Rx` | 중간 (3) | 인터럽트 | RPi5 바이너리 프레임 수신 · 상태머신 파싱 · Queue 전달 |
 | `Task_Alert` | 중간 (3) | 100ms | LED 상태 표시 (State 0=꺼짐 / 1=500ms 깜빡 / 2=점등) |
+
+---
+
+## CAN 송신 메시지
+
+### 구현
+
+| CAN ID | 메시지 명 | 주기 | 설명 |
+|---|---|---|---|
+| `0x100` | `DMS_State` | 100ms | 졸음 상태 (0/1/2) + EAR×100 + SeqNum |
+| `0x7DF` | `DMS_DTC` | 이벤트 | Heartbeat 단절 시 고장 코드 자동 송출 |
+
+### 예정
+
+| CAN ID | 메시지 명 | 주기 | 설명 |
+|---|---|---|---|
+| `0x200` | `DMS_ECU_Heartbeat` | 500ms | STM32 생존 확인용 역방향 Heartbeat. 네비 노드가 STM32 단절을 감지할 수 있게 함 |
+| `0x110` | `DMS_SystemStatus` | 1000ms | AI 노드 연결 상태 · 카메라 상태 · Failsafe 진입 여부를 별도 메시지로 송신. 감지 결과(0x100)와 시스템 헬스를 분리 |
+| `0x120` | `DMS_Session` | 이벤트 | 시동 ON/OFF 시 주행 세션 시작·종료 이벤트 송출. 네비 노드 SQLite에서 세션 단위 집계 가능 |
+
+## CAN 수신 메시지
+
+### 구현
+
+| CAN ID | 메시지 명 | 설명 |
+|---|---|---|
+| `0x101` | `DMS_ACK` | 네비 노드 수신 확인 |
+
+### 예정
+
+| CAN ID | 메시지 명 | 설명 |
+|---|---|---|
+| `0x102` | `DMS_Driver_Response` | 네비 노드 터치스크린에서 운전자가 경고 확인 버튼 누름 → STM32 알림 리셋 및 에스컬레이션 중단 |
 
 ---
 
@@ -45,7 +78,7 @@ CAN DTC(`0x7DF`)를 자동 송출한다. AI 연산 부하에 관계없이 안전
 | TIM2 | — | 500ms 인터럽트 | Heartbeat 타이머 |
 | LED2 | PB14 | GPIO_Output | 졸음 상태 표시 |
 
-> ⚠️ **주의:** B-L475E-IOT01A2 기본 초기화 시 온보드 UART4(PA0/PA1)가 핀을 선점함.  
+> ⚠️ B-L475E-IOT01A2 기본 초기화 시 온보드 UART4(PA0/PA1)가 핀을 선점함.  
 > 반드시 온보드 주변장치를 비활성화한 `base.ioc`에서 프로젝트를 시작할 것.
 
 ---
@@ -67,19 +100,25 @@ FreeRTOS: CMSIS-RTOS v2, configTICK_RATE_HZ=1000
 ```c
 /* Core/Inc/dms_config.h */
 
-/* UART 프레임 정의 */
+/* UART 프레임 */
 #define UART_SYNC_BYTE          0xAA
-#define UART_FRAME_SIZE         5         /* [SYNC, State, EAR×100, Seq, CRC] */
+#define UART_FRAME_SIZE         5
 
 /* Heartbeat / Failsafe */
-#define HEARTBEAT_TIMEOUT_MS    500       /* AI 노드 단절 판정 임계값 */
-#define HEARTBEAT_COUNTER_MAX   5         /* 100ms 주기 × 5 = 500ms */
+#define HEARTBEAT_TIMEOUT_MS    500
+#define HEARTBEAT_COUNTER_MAX   5       /* 100ms × 5 = 500ms */
 
-/* CAN */
-#define CAN_TX_PERIOD_MS        100       /* 상태 메시지 송신 주기 */
-#define CAN_DMS_STATE_ID        0x100     /* 졸음 상태 메시지 ID */
-#define CAN_DTC_ID              0x7DF     /* UDS 표준 진단 요청 ID 차용 */
-#define DTC_CODE                0xFF01    /* Heartbeat 단절 DTC */
+/* CAN ID — 구현 */
+#define CAN_DMS_STATE_ID        0x100
+#define CAN_DMS_ACK_ID          0x101
+#define CAN_DTC_ID              0x7DF
+#define DTC_CODE                0xFF01  /* Heartbeat 단절 DTC */
+
+/* CAN ID — 예정 */
+#define CAN_ECU_HB_ID           0x200
+#define CAN_SYS_STATUS_ID       0x110
+#define CAN_SESSION_ID          0x120
+#define CAN_DRIVER_RESP_ID      0x102
 
 /* FreeRTOS 우선순위 */
 #define PRIORITY_WATCHDOG       5
@@ -93,17 +132,46 @@ FreeRTOS: CMSIS-RTOS v2, configTICK_RATE_HZ=1000
 ## Watchdog / Failsafe 동작 흐름
 
 ```
-TIM2 인터럽트 (100ms 주기)
+TIM2 인터럽트 (100ms)
     → heartbeat_counter 감소
     → counter == 0 (500ms 경과):
         ├── CAN DTC 0x7DF 송출 (DTC_CODE = 0xFF01)
-        ├── LED 소등 (State unknown)
+        ├── LED 소등
         └── failsafe_flag = 1
 
-UART 프레임 정상 수신 시:
-    → heartbeat_counter = HEARTBEAT_COUNTER_MAX (리셋)
-    → failsafe_flag = 0 (해제)
-    → Queue에 State / EAR 값 전달 → Task_CAN_Tx, Task_Alert 처리
+UART 프레임 정상 수신:
+    → heartbeat_counter = HEARTBEAT_COUNTER_MAX
+    → failsafe_flag = 0
+    → Queue → Task_CAN_Tx, Task_Alert 처리
+```
+
+---
+
+## CAN 송신 코드 (구현)
+
+```c
+/* can_tx.c */
+void CAN_Tx_DMS_State(uint8_t state, uint8_t ear_scaled, uint8_t seq) {
+    uint8_t data[3];
+    data[0] = state;
+    data[1] = ear_scaled;
+    data[2] = seq;
+    TxHeader.StdId = CAN_DMS_STATE_ID;
+    TxHeader.DLC   = 3;
+    HAL_CAN_AddTxMessage(&hcan1, &TxHeader, data, &TxMailbox);
+}
+
+void CAN_Tx_DTC(void) {
+    uint8_t data[8] = {0xFF, 0x01, 0x02, 0x01, 0, 0, 0, 0};
+    TxHeader.StdId = CAN_DTC_ID;
+    TxHeader.DLC   = 8;
+    HAL_CAN_AddTxMessage(&hcan1, &TxHeader, data, &TxMailbox);
+}
+
+/* 예정 */
+void CAN_Tx_ECU_Heartbeat(uint8_t count) { /* 0x200 */ }
+void CAN_Tx_SystemStatus(uint8_t ai_conn, uint8_t cam, uint8_t failsafe) { /* 0x110 */ }
+void CAN_Tx_Session(uint8_t type, uint8_t session_id) { /* 0x120 */ }
 ```
 
 ---
@@ -111,44 +179,14 @@ UART 프레임 정상 수신 시:
 ## UART 프레임 파싱 (상태머신)
 
 ```c
-/* uart_parser.c — 상태머신 기반 파싱 */
+/* uart_parser.c */
 typedef enum {
-    WAIT_SYNC,    /* 0xAA 대기 */
-    READ_STATE,   /* 졸음 상태 수신 */
-    READ_EAR,     /* EAR×100 수신 */
-    READ_SEQ,     /* 순서 번호 수신 */
-    READ_CRC      /* 체크섬 검증 */
+    WAIT_SYNC, READ_STATE, READ_EAR, READ_SEQ, READ_CRC
 } UartParseState;
 
-/* 체크섬 검증 */
-uint8_t expected_crc = frame[1] ^ frame[2] ^ frame[3];
-if (received_crc != expected_crc) { /* 프레임 파기 */ }
-```
-
----
-
-## CAN 송신 인코딩
-
-```c
-/* can_tx.c — DBC 기반 수동 인코딩 */
-void CAN_Tx_DMS_State(uint8_t state, uint8_t ear_scaled, uint8_t seq) {
-    uint8_t data[3];
-    data[0] = state;       /* DMS_DrowsyState (Byte 0) */
-    data[1] = ear_scaled;  /* DMS_EAR_Scaled  (Byte 1) */
-    data[2] = seq;         /* DMS_SeqNum      (Byte 2) */
-
-    TxHeader.StdId = 0x100;
-    TxHeader.DLC   = 3;
-    HAL_CAN_AddTxMessage(&hcan1, &TxHeader, data, &TxMailbox);
-}
-
-/* DTC 송출 */
-void CAN_Tx_DTC(void) {
-    uint8_t data[8] = {0xFF, 0x01, 0x02, 0x01, 0, 0, 0, 0};
-    TxHeader.StdId = 0x7DF;
-    TxHeader.DLC   = 8;
-    HAL_CAN_AddTxMessage(&hcan1, &TxHeader, data, &TxMailbox);
-}
+/* 체크섬: Byte1 XOR Byte2 XOR Byte3 */
+uint8_t expected = frame[1] ^ frame[2] ^ frame[3];
+if (received_crc != expected) { /* 프레임 파기 */ }
 ```
 
 ---
@@ -156,10 +194,9 @@ void CAN_Tx_DTC(void) {
 ## 빌드 및 플래시
 
 ```
-1. STM32CubeIDE 실행
-2. File → Import → Existing Projects into Workspace → stm32/ 선택
-3. Project → Build All (Release 모드 권장)
-4. Run → Debug/Flash (ST-Link/V2, 보드 내장 ST-Link 사용)
+1. STM32CubeIDE → stm32/ 프로젝트 열기
+2. Project → Build All (Release 모드)
+3. Run → Flash (ST-Link/V2, 보드 내장)
 ```
 
 ---
@@ -170,17 +207,16 @@ void CAN_Tx_DTC(void) {
 stm32/
 ├── Core/
 │   ├── Inc/
-│   │   ├── dms_config.h        # 전역 상수 및 파라미터
+│   │   ├── dms_config.h        # 전역 상수 (CAN ID, Timeout, 우선순위)
 │   │   ├── uart_parser.h
 │   │   └── can_tx.h
 │   └── Src/
 │       ├── freertos.c          # 4-Task 정의 및 스케줄링
 │       ├── uart_parser.c       # 바이너리 프레임 상태머신 파싱
-│       ├── can_tx.c            # CAN 송신 (DBC 인코딩)
-│       └── main.c              # HAL 초기화 및 OS 시작
-├── Middlewares/
-│   └── FreeRTOS/               # FreeRTOS 커널 (CubeMX 자동 생성)
-├── dms_stm32.ioc               # CubeMX 프로젝트 파일
+│       ├── can_tx.c            # CAN 송신 (구현 + 예정 stub)
+│       └── main.c
+├── Middlewares/FreeRTOS/
+├── dms_stm32.ioc
 └── README.md
 ```
 
@@ -193,6 +229,5 @@ stm32/
 | MCU | STM32L476RG (B-L475E-IOT01A2) |
 | RTOS | FreeRTOS (CMSIS-RTOS v2) |
 | IDE | STM32CubeIDE 1.14+ |
-| Debugger | ST-Link/V2 (보드 내장) |
 | CAN 트랜시버 | SN65HVD230 (3.3V 동작) |
 | UART 연결 | PA0/PA1 ↔ RPi5 크로스 연결 (TX↔RX) |
