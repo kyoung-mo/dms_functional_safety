@@ -5,13 +5,11 @@ import sys
 import os
 import can
 from threading import Thread
-
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from gps.firebase_gps import start, latest_gps
+from gps.firebase_gps import start, latest_gps, save_event_firebase
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
-
 current_state = 0
 
 def can_reader_thread():
@@ -21,12 +19,9 @@ def can_reader_thread():
         for msg in bus:
             if len(msg.data) < 2:
                 continue
-
             driver_state = msg.data[0]
             rpi_alive    = msg.data[1]
-
             current_state = driver_state
-
             lat = latest_gps.get("lat")
             lon = latest_gps.get("lon")
 
@@ -38,7 +33,10 @@ def can_reader_thread():
             })
 
             if driver_state >= 2:
+                # SQLite 저장 (기존 유지)
                 save_event(driver_state, lat, lon)
+                # Firebase 저장 (추가)
+                save_event_firebase(driver_state, lat, lon)
 
     except Exception as e:
         print(f"[CAN ERROR] {e}")

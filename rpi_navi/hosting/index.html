@@ -27,7 +27,7 @@
         const db = getDatabase(app);
 
         function sendGPS(lat, lon) {
-            set(ref(db, 'gps'), { lat: lat, lon: lon });
+            set(ref(db, 'gps/kym'), { lat: lat, lon: lon });
             document.getElementById('status').innerText = '✅ GPS 전송 중';
             document.getElementById('coords').innerText = `lat: ${lat.toFixed(6)}, lon: ${lon.toFixed(6)}`;
         }
