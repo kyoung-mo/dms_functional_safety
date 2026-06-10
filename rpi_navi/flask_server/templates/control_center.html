@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=5735c411c5a31661741adfbd0cd7857d&autoload=false"></script>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>DMS 중앙 관제 시스템</title>
@@ -18,11 +19,9 @@
     --yellow: #d29922;
     --sidebar-w: 260px;
   }
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
   body {
-    font-family: 'Pretendard', 'Noto Sans KR', system-ui, sans-serif;
+    font-family: 'Noto Sans KR', system-ui, sans-serif;
     background: var(--bg);
     color: var(--text);
     height: 100vh;
@@ -30,488 +29,169 @@
     overflow: hidden;
   }
 
-  /* ── 로그인 화면 ── */
+  /* 로그인 */
   #login-screen {
-    position: fixed;
-    inset: 0;
+    position: fixed; inset: 0;
     background: var(--bg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: flex; align-items: center; justify-content: center;
     z-index: 1000;
   }
-
   .login-box {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 12px;
     padding: 48px 40px;
-    width: 360px;
-    text-align: center;
+    width: 360px; text-align: center;
   }
-
-  .login-box .logo {
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.15em;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    margin-bottom: 8px;
-  }
-
-  .login-box h1 {
-    font-size: 22px;
-    font-weight: 700;
-    margin-bottom: 32px;
-    color: var(--text);
-  }
-
+  .login-box .logo { font-size: 13px; font-weight: 600; letter-spacing: 0.15em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
+  .login-box h1 { font-size: 22px; font-weight: 700; margin-bottom: 32px; }
   .login-box input {
-    width: 100%;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 14px;
-    color: var(--text);
-    font-size: 14px;
-    margin-bottom: 12px;
-    outline: none;
-    transition: border-color 0.2s;
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; color: var(--text); font-size: 14px;
+    margin-bottom: 12px; outline: none; transition: border-color 0.2s;
   }
-
   .login-box input:focus { border-color: var(--accent); }
-
   .login-box button {
-    width: 100%;
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: 11px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    margin-top: 4px;
-    transition: opacity 0.2s;
+    width: 100%; background: var(--accent); color: #fff; border: none;
+    border-radius: 8px; padding: 11px; font-size: 14px; font-weight: 600;
+    cursor: pointer; margin-top: 4px; transition: opacity 0.2s;
   }
-
   .login-box button:hover { opacity: 0.85; }
   .login-error { color: var(--red); font-size: 13px; margin-top: 10px; display: none; }
 
-  /* ── 사이드바 ── */
+  /* 사이드바 */
   #sidebar {
-    width: var(--sidebar-w);
-    background: var(--surface);
+    width: var(--sidebar-w); background: var(--surface);
     border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
+    display: flex; flex-direction: column; flex-shrink: 0;
   }
-
-  .sidebar-header {
-    padding: 20px 16px 16px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .sidebar-header .brand {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    margin-bottom: 4px;
-  }
-
-  .sidebar-header h2 {
-    font-size: 16px;
-    font-weight: 700;
-  }
-
-  .nav-section {
-    padding: 12px 8px 4px;
-  }
-
-  .nav-label {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    padding: 0 8px;
-    margin-bottom: 4px;
-  }
-
+  .sidebar-header { padding: 20px 16px 16px; border-bottom: 1px solid var(--border); }
+  .sidebar-header .brand { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
+  .sidebar-header h2 { font-size: 16px; font-weight: 700; }
+  .nav-section { padding: 12px 8px 4px; }
+  .nav-label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; color: var(--text-muted); text-transform: uppercase; padding: 0 8px; margin-bottom: 4px; }
   .nav-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 9px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 14px;
-    color: var(--text-muted);
-    transition: all 0.15s;
-    user-select: none;
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 12px; border-radius: 8px; cursor: pointer;
+    font-size: 14px; color: var(--text-muted); transition: all 0.15s;
   }
-
   .nav-item:hover { background: var(--surface2); color: var(--text); }
   .nav-item.active { background: var(--surface2); color: var(--accent); font-weight: 600; }
-  .nav-item svg { flex-shrink: 0; }
-
-  /* 운전자 목록 */
-  .driver-list {
-    padding: 4px 8px;
-    flex: 1;
-    overflow-y: auto;
-  }
-
+  .driver-list { padding: 4px 8px; flex: 1; overflow-y: auto; }
   .driver-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 13px;
-    color: var(--text-muted);
-    transition: all 0.15s;
-    margin-bottom: 2px;
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-radius: 8px; cursor: pointer;
+    font-size: 13px; color: var(--text-muted); transition: all 0.15s; margin-bottom: 2px;
   }
-
   .driver-item:hover { background: var(--surface2); color: var(--text); }
   .driver-item.active { background: var(--surface2); color: var(--text); }
+  .driver-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
-  .driver-dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .driver-name { flex: 1; font-weight: 500; }
-  .driver-status {
-    font-size: 11px;
-    padding: 2px 7px;
-    border-radius: 20px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-  }
-
-  .driver-status.alert { color: var(--yellow); border-color: var(--yellow); }
-
-  /* ── 메인 콘텐츠 ── */
-  #main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-
+  /* 메인 */
+  #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
   .topbar {
-    height: 52px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: center;
-    padding: 0 20px;
-    gap: 12px;
-    flex-shrink: 0;
-    background: var(--surface);
+    height: 52px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 20px; gap: 12px;
+    flex-shrink: 0; background: var(--surface);
   }
-
   .topbar-title { font-size: 15px; font-weight: 600; }
   .topbar-sub { font-size: 13px; color: var(--text-muted); }
   .topbar-spacer { flex: 1; }
-
-  .badge {
-    font-size: 12px;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-weight: 600;
-  }
-
+  .badge { font-size: 12px; padding: 3px 10px; border-radius: 20px; font-weight: 600; }
   .badge-green { background: rgba(63,185,80,0.15); color: var(--green); }
-  .badge-red { background: rgba(248,81,73,0.15); color: var(--red); }
 
-  /* 탭 컨텐츠 */
+  /* 탭 */
   .tab-content { display: none; flex: 1; overflow: hidden; }
   .tab-content.active { display: flex; flex-direction: column; }
 
-  /* ── 지도 탭 ── */
-  #map-container {
-    flex: 1;
-    position: relative;
-  }
-
-  #map { width: 100%; height: 100%; }
-
-  /* 지도 위 컨트롤 패널 */
+  /* 지도 탭 */
+  #map-container { flex: 1; position: relative; min-height: 0; }
+  #map { width: 100%; height: 100%; min-height: 400px; }
   .map-overlay {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px;
-    min-width: 220px;
-    z-index: 10;
+    position: absolute; top: 16px; right: 16px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px; min-width: 200px; z-index: 10;
   }
-
-  .map-overlay h4 {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-muted);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    margin-bottom: 10px;
-  }
-
+  .map-overlay h4 { font-size: 12px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; }
   .driver-legend {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 8px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background 0.15s;
-    margin-bottom: 2px;
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px; border-radius: 6px; cursor: pointer;
+    transition: background 0.15s; margin-bottom: 2px;
   }
-
   .driver-legend:hover { background: var(--surface2); }
   .driver-legend.selected { background: var(--surface2); }
-
-  .legend-line {
-    width: 24px;
-    height: 3px;
-    border-radius: 2px;
-    flex-shrink: 0;
-  }
-
+  .legend-line { width: 24px; height: 3px; border-radius: 2px; flex-shrink: 0; }
   .legend-name { font-size: 13px; flex: 1; }
   .legend-events { font-size: 11px; color: var(--text-muted); }
 
-  /* 졸음 이벤트 팝업 */
+  /* 이벤트 팝업 */
   .event-popup {
-    position: absolute;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 14px 16px;
-    min-width: 200px;
-    z-index: 20;
-    display: none;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    position: absolute; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px; min-width: 200px; z-index: 20;
+    display: none; box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    top: 80px; left: 50%; transform: translateX(-50%);
   }
-
   .event-popup h4 { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
   .event-popup .row { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px; }
   .event-popup .row span:first-child { color: var(--text-muted); }
-  .event-popup .close-btn {
-    position: absolute;
-    top: 8px; right: 10px;
-    background: none;
-    border: none;
-    color: var(--text-muted);
-    cursor: pointer;
-    font-size: 16px;
-  }
+  .event-popup .close-btn { position: absolute; top: 8px; right: 10px; background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px; }
 
-  /* ── 운전자 상태 탭 ── */
-  #drivers-tab {
-    flex: 1;
-    overflow-y: auto;
-    padding: 24px;
-  }
-
-  .drivers-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-
+  /* 운전자 상태 탭 */
+  #drivers-tab { flex: 1; overflow-y: auto; padding: 24px; }
+  .drivers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
   .driver-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px;
-    cursor: pointer;
-    transition: all 0.2s;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; cursor: pointer; transition: all 0.2s;
   }
-
-  .driver-card:hover {
-    border-color: var(--accent);
-    transform: translateY(-2px);
-  }
-
+  .driver-card:hover { border-color: var(--accent); transform: translateY(-2px); }
   .driver-card.selected { border-color: var(--accent); }
-
-  .card-header {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 14px;
-  }
-
+  .card-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
   .avatar {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background: var(--surface2);
-    border: 2px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    flex-shrink: 0;
-    overflow: hidden;
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--surface2); border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;
   }
-
-  .avatar img { width: 100%; height: 100%; object-fit: cover; }
-
   .card-info h3 { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
   .card-info p { font-size: 12px; color: var(--text-muted); }
-
-  .card-details {
-    border-top: 1px solid var(--border);
-    padding-top: 12px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-
+  .card-details { border-top: 1px solid var(--border); padding-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .detail-item { font-size: 12px; }
   .detail-item .label { color: var(--text-muted); margin-bottom: 2px; }
   .detail-item .value { font-weight: 500; }
 
-  /* 운전자 상세 패널 */
-  #driver-detail {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 24px;
-    display: none;
-  }
-
+  /* 운전자 상세 */
+  #driver-detail { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; display: none; }
   #driver-detail.open { display: block; }
-
-  .detail-header {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 20px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .detail-avatar {
-    width: 64px;
-    height: 64px;
-    border-radius: 50%;
-    background: var(--surface2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 28px;
-    border: 2px solid var(--border);
-  }
-
+  .detail-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+  .detail-avatar { width: 64px; height: 64px; border-radius: 50%; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 28px; border: 2px solid var(--border); }
   .detail-info h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
   .detail-info p { font-size: 13px; color: var(--text-muted); }
-
-  .detail-meta {
-    display: flex;
-    gap: 24px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-  }
-
+  .detail-meta { display: flex; gap: 24px; margin-bottom: 20px; flex-wrap: wrap; }
   .meta-item { font-size: 13px; }
   .meta-item .label { color: var(--text-muted); margin-bottom: 2px; }
   .meta-item .value { font-weight: 500; }
-
-  .date-selector {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-
+  .date-selector { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
   .date-selector label { font-size: 13px; color: var(--text-muted); }
-
-  .date-selector select {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text);
-    padding: 6px 10px;
-    font-size: 13px;
-    outline: none;
-  }
-
+  .date-selector select { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 6px 10px; font-size: 13px; outline: none; }
   #detail-map { width: 100%; height: 300px; border-radius: 8px; margin-bottom: 16px; border: 1px solid var(--border); }
-
-  .session-stats {
-    display: flex;
-    gap: 16px;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-  }
-
-  .stat-box {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 16px;
-    min-width: 120px;
-  }
-
+  .session-stats { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+  .stat-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; min-width: 120px; }
   .stat-box .label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
   .stat-box .value { font-size: 18px; font-weight: 700; }
-
   .events-list h4 { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.08em; }
-
-  .event-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    border-radius: 8px;
-    background: var(--surface2);
-    margin-bottom: 6px;
-    font-size: 13px;
-  }
-
-  .event-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--yellow);
-    flex-shrink: 0;
-  }
-
-  .event-dot.severe { background: var(--red); }
+  .event-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px; background: var(--surface2); margin-bottom: 6px; font-size: 13px; }
+  .event-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--yellow); flex-shrink: 0; }
   .event-time { color: var(--text-muted); min-width: 80px; }
   .event-loc { flex: 1; color: var(--text-muted); font-size: 12px; }
   .event-state { font-weight: 600; }
 
-  /* 스크롤바 */
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
-  /* 애니메이션 */
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(4px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  .fade-in { animation: fadeIn 0.25s ease; }
 </style>
 </head>
 <body>
 
-<!-- 로그인 화면 -->
+<!-- 로그인 -->
 <div id="login-screen">
   <div class="login-box">
     <div class="logo">DMS Fleet</div>
@@ -523,13 +203,12 @@
   </div>
 </div>
 
-<!-- 메인 레이아웃 -->
+<!-- 사이드바 -->
 <div id="sidebar">
   <div class="sidebar-header">
     <div class="brand">DMS Fleet</div>
     <h2>관제 센터</h2>
   </div>
-
   <div class="nav-section">
     <div class="nav-label">메뉴</div>
     <div class="nav-item active" onclick="switchTab('map')" id="nav-map">
@@ -548,21 +227,19 @@
       운전자 상태
     </div>
   </div>
-
-  <div class="nav-label" style="padding: 12px 16px 4px; font-size:11px; font-weight:600; letter-spacing:0.08em; color:var(--text-muted); text-transform:uppercase;">운전자</div>
-  <div class="driver-list" id="sidebar-driver-list">
-    <!-- 동적 생성 -->
-  </div>
+  <div class="nav-label" style="padding:12px 16px 4px;font-size:11px;font-weight:600;letter-spacing:0.08em;color:var(--text-muted);text-transform:uppercase;">운전자</div>
+  <div class="driver-list" id="sidebar-driver-list"></div>
 </div>
 
+<!-- 메인 -->
 <div id="main">
   <div class="topbar">
     <div>
       <div class="topbar-title" id="topbar-title">전체 운전자 현황</div>
-      <div class="topbar-sub" id="topbar-sub">실시간 모니터링 중</div>
+      <div class="topbar-sub">실시간 모니터링 중</div>
     </div>
     <div class="topbar-spacer"></div>
-    <div class="badge badge-green" id="status-badge">● 연결됨</div>
+    <div class="badge badge-green">● 연결됨</div>
   </div>
 
   <!-- 지도 탭 -->
@@ -590,51 +267,36 @@
   </div>
 </div>
 
-<!-- Firebase SDK -->
+<!-- Firebase -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, onValue, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-const firebaseConfig = {
-  databaseURL: "https://dms-navi-default-rtdb.asia-southeast1.firebasedatabase.app"
-};
-const app = initializeApp(firebaseConfig);
+const app = initializeApp({ databaseURL: "https://dms-navi-default-rtdb.asia-southeast1.firebasedatabase.app" });
 const db = getDatabase(app);
 
-// ── 전역 상태 ──
-window.fbDb = db;
-window.fbRef = ref;
-window.fbOnValue = onValue;
-window.fbGet = get;
-
-window.driversData = {};   // { id: { profile, sessions, currentGps } }
+const PALETTE = ['#58a6ff','#3fb950','#e3b341','#f78166','#bc8cff','#39d353','#ffa657'];
+let colorIdx = 0;
+window.driversData = {};
+window.driverColors = {};
 window.selectedDriver = null;
 window.kakaoMap = null;
-window.polylines = {};     // { driverId: [kakao.Polyline] }
-window.eventMarkers = {};  // { driverId: [kakao.Marker] }
+window.polylines = {};
+window.eventMarkers = {};
 window.dangerPolylines = {};
-window.driverColors = {};
-
-const PALETTE = [
-  '#58a6ff','#3fb950','#e3b341','#f78166','#bc8cff',
-  '#39d353','#ffa657','#79c0ff','#d2a8ff','#56d364'
-];
-
-let colorIdx = 0;
 
 function assignColor(id) {
   if (!window.driverColors[id]) {
-    window.driverColors[id] = PALETTE[colorIdx % PALETTE.length];
-    colorIdx++;
+    window.driverColors[id] = PALETTE[colorIdx++ % PALETTE.length];
   }
   return window.driverColors[id];
 }
 
-// ── 데이터 로드 ──
-async function loadAllData() {
-  const driversSnap = await get(ref(db, '/drivers'));
-  const sessionsSnap = await get(ref(db, '/sessions'));
-
+window.loadAllData = async function() {
+  const [driversSnap, sessionsSnap] = await Promise.all([
+    get(ref(db, '/drivers')),
+    get(ref(db, '/sessions'))
+  ]);
   const drivers = driversSnap.val() || {};
   const sessions = sessionsSnap.val() || {};
 
@@ -646,44 +308,31 @@ async function loadAllData() {
     assignColor(id);
   }
 
-  // 실시간 GPS 구독
-  onValue(ref(db, '/gps'), (snap) => {
+  onValue(ref(db, '/gps'), snap => {
     const gps = snap.val() || {};
     for (const id of Object.keys(gps)) {
-      if (window.driversData[id]) {
-        window.driversData[id].currentGps = gps[id];
-      }
+      if (window.driversData[id]) window.driversData[id].currentGps = gps[id];
     }
   });
 
   renderSidebar();
   renderDriversGrid();
-  if (window.kakaoMap) renderAllPaths();
-}
+  renderAllPaths();
+};
 
-window.loadAllData = loadAllData;
-
-// ── 사이드바 렌더 ──
 function renderSidebar() {
   const el = document.getElementById('sidebar-driver-list');
   el.innerHTML = '';
   for (const [id, d] of Object.entries(window.driversData)) {
-    const color = window.driverColors[id];
     const div = document.createElement('div');
     div.className = 'driver-item';
     div.id = `sidebar-${id}`;
-    div.innerHTML = `
-      <div class="driver-dot" style="background:${color}"></div>
-      <span class="driver-name">${d.profile.name || id}</span>
-    `;
+    div.innerHTML = `<div class="driver-dot" style="background:${window.driverColors[id]}"></div><span>${d.profile.name || id}</span>`;
     div.onclick = () => selectDriver(id);
     el.appendChild(div);
   }
 }
 
-window.renderSidebar = renderSidebar;
-
-// ── 운전자 카드 그리드 ──
 function renderDriversGrid() {
   const grid = document.getElementById('drivers-grid');
   grid.innerHTML = '';
@@ -692,433 +341,257 @@ function renderDriversGrid() {
     const p = d.profile;
     const sessionCount = Object.keys(d.sessions).length;
     const div = document.createElement('div');
-    div.className = 'driver-card fade-in';
+    div.className = 'driver-card';
     div.id = `card-${id}`;
     div.innerHTML = `
       <div class="card-header">
-        <div class="avatar" style="border-color:${color}">
-          ${p.photo ? `<img src="${p.photo}">` : '🧑‍✈️'}
-        </div>
-        <div class="card-info">
-          <h3>${p.name || id}</h3>
-          <p>${p.company || '-'}</p>
-        </div>
+        <div class="avatar" style="border-color:${color}">🧑‍✈️</div>
+        <div class="card-info"><h3>${p.name || id}</h3><p>${p.company || '-'}</p></div>
       </div>
       <div class="card-details">
-        <div class="detail-item">
-          <div class="label">연락처</div>
-          <div class="value">${p.phone || '-'}</div>
-        </div>
-        <div class="detail-item">
-          <div class="label">이메일</div>
-          <div class="value" style="font-size:11px">${p.email || '-'}</div>
-        </div>
-        <div class="detail-item">
-          <div class="label">차량번호</div>
-          <div class="value">${p.truck || '-'}</div>
-        </div>
-        <div class="detail-item">
-          <div class="label">총 운행</div>
-          <div class="value">${sessionCount}회</div>
-        </div>
-      </div>
-    `;
+        <div class="detail-item"><div class="label">연락처</div><div class="value">${p.phone || '-'}</div></div>
+        <div class="detail-item"><div class="label">이메일</div><div class="value" style="font-size:11px">${p.email || '-'}</div></div>
+        <div class="detail-item"><div class="label">차량번호</div><div class="value">${p.truck || '-'}</div></div>
+        <div class="detail-item"><div class="label">총 운행</div><div class="value">${sessionCount}회</div></div>
+      </div>`;
     div.onclick = () => openDriverDetail(id);
     grid.appendChild(div);
   }
 }
 
-window.renderDriversGrid = renderDriversGrid;
-
-// ── 운전자 상세 ──
 window.openDriverDetail = function(id) {
   const d = window.driversData[id];
   const p = d.profile;
   const color = window.driverColors[id];
-  const sessions = d.sessions;
+  const sessionKeys = Object.keys(d.sessions).sort().reverse();
 
   document.querySelectorAll('.driver-card').forEach(c => c.classList.remove('selected'));
   document.getElementById(`card-${id}`)?.classList.add('selected');
 
-  const sessionKeys = Object.keys(sessions).sort().reverse();
   const sessionOptions = sessionKeys.map(k =>
-    `<option value="${k}">${k.replace('_', ' ').replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')}</option>`
+    `<option value="${k}">${k.replace('_',' ').replace(/(\d{4})(\d{2})(\d{2})/,'$1-$2-$3')}</option>`
   ).join('');
 
   const detail = document.getElementById('driver-detail');
-  detail.className = 'open fade-in';
+  detail.className = 'open';
   detail.innerHTML = `
     <div class="detail-header">
       <div class="detail-avatar" style="border-color:${color}">🧑‍✈️</div>
-      <div class="detail-info">
-        <h2>${p.name || id}</h2>
-        <p>${p.company || ''} · ${p.truck || ''}</p>
-      </div>
+      <div class="detail-info"><h2>${p.name || id}</h2><p>${p.company || ''} · ${p.truck || ''}</p></div>
     </div>
     <div class="detail-meta">
       <div class="meta-item"><div class="label">연락처</div><div class="value">${p.phone || '-'}</div></div>
       <div class="meta-item"><div class="label">이메일</div><div class="value">${p.email || '-'}</div></div>
-      <div class="meta-item"><div class="label">총 운행 세션</div><div class="value">${sessionKeys.length}회</div></div>
+      <div class="meta-item"><div class="label">총 운행</div><div class="value">${sessionKeys.length}회</div></div>
     </div>
     <div class="date-selector">
       <label>운행 날짜</label>
-      <select id="session-select" onchange="loadSessionDetail('${id}', this.value)">
-        ${sessionOptions}
-      </select>
+      <select id="session-select" onchange="loadSessionDetail('${id}', this.value)">${sessionOptions}</select>
     </div>
     <div id="detail-map"></div>
     <div class="session-stats" id="session-stats"></div>
-    <div class="events-list">
-      <h4>졸음 이벤트</h4>
-      <div id="events-list-content"></div>
-    </div>
-  `;
+    <div class="events-list"><h4>졸음 이벤트</h4><div id="events-list-content"></div></div>`;
 
   detail.scrollIntoView({ behavior: 'smooth' });
-
-  if (sessionKeys.length > 0) {
-    setTimeout(() => loadSessionDetail(id, sessionKeys[0]), 300);
-  }
+  if (sessionKeys.length > 0) setTimeout(() => loadSessionDetail(id, sessionKeys[0]), 300);
 };
 
 window.loadSessionDetail = function(driverId, sessionId) {
   const session = window.driversData[driverId]?.sessions[sessionId];
   if (!session) return;
-
   const gpsPath = session.gps_path ? Object.values(session.gps_path) : [];
   const events = session.events ? Object.values(session.events) : [];
-
-  // 세션 통계
-  const statsEl = document.getElementById('session-stats');
   const startTime = session.start_time ? new Date(session.start_time).toLocaleTimeString('ko-KR') : '-';
-  const duration = gpsPath.length > 1
-    ? Math.round((new Date(gpsPath[gpsPath.length-1].timestamp) - new Date(gpsPath[0].timestamp)) / 60000)
-    : 0;
+  const duration = gpsPath.length > 1 ? Math.round((new Date(gpsPath[gpsPath.length-1].timestamp) - new Date(gpsPath[0].timestamp)) / 60000) : 0;
 
-  statsEl.innerHTML = `
+  document.getElementById('session-stats').innerHTML = `
     <div class="stat-box"><div class="label">시작 시각</div><div class="value" style="font-size:14px">${startTime}</div></div>
     <div class="stat-box"><div class="label">운행 시간</div><div class="value">${duration}<span style="font-size:12px;font-weight:400"> 분</span></div></div>
     <div class="stat-box"><div class="label">GPS 기록</div><div class="value">${gpsPath.length}<span style="font-size:12px;font-weight:400"> 점</span></div></div>
-    <div class="stat-box"><div class="label">졸음 이벤트</div><div class="value" style="color:${events.length>0?'var(--yellow)':'var(--green)'}">${events.length}<span style="font-size:12px;font-weight:400"> 회</span></div></div>
-  `;
+    <div class="stat-box"><div class="label">졸음 이벤트</div><div class="value" style="color:${events.length>0?'var(--yellow)':'var(--green)'}">${events.length}<span style="font-size:12px;font-weight:400"> 회</span></div></div>`;
 
-  // 이벤트 목록
-  const eventsEl = document.getElementById('events-list-content');
-  if (events.length === 0) {
-    eventsEl.innerHTML = '<div style="font-size:13px;color:var(--text-muted);padding:12px">졸음 이벤트 없음</div>';
-  } else {
-    eventsEl.innerHTML = events.map((e, i) => {
-      const t = new Date(e.timestamp).toLocaleTimeString('ko-KR');
-      const stateLabel = e.state === 2 ? '졸음 감지' : '심각한 졸음';
-      return `
-        <div class="event-row">
-          <div class="event-dot ${e.state >= 3 ? 'severe' : ''}"></div>
+  document.getElementById('events-list-content').innerHTML = events.length === 0
+    ? '<div style="font-size:13px;color:var(--text-muted);padding:12px">졸음 이벤트 없음</div>'
+    : events.map(e => {
+        const t = new Date(e.timestamp).toLocaleTimeString('ko-KR');
+        return `<div class="event-row">
+          <div class="event-dot"></div>
           <div class="event-time">${t}</div>
-          <div class="event-state" style="color:${e.state>=3?'var(--red)':'var(--yellow)'}">${stateLabel}</div>
-          <div class="event-loc">${e.lat ? e.lat.toFixed(5) : '-'}, ${e.lon ? e.lon.toFixed(5) : '-'}</div>
-        </div>
-      `;
-    }).join('');
-  }
+          <div class="event-state" style="color:var(--yellow)">졸음 감지</div>
+          <div class="event-loc">${e.lat?.toFixed(5)||'-'}, ${e.lon?.toFixed(5)||'-'}</div>
+        </div>`;
+      }).join('');
 
-  // 상세 지도
-  if (gpsPath.length > 0) {
+  if (gpsPath.length > 0 && window.kakao) {
     const center = gpsPath[Math.floor(gpsPath.length/2)];
     const detailMap = new kakao.maps.Map(document.getElementById('detail-map'), {
-      center: new kakao.maps.LatLng(center.lat, center.lon),
-      level: 5
+      center: new kakao.maps.LatLng(center.lat, center.lon), level: 5
     });
-
     if (gpsPath.length > 1) {
-      const path = gpsPath.map(p => new kakao.maps.LatLng(p.lat, p.lon));
       new kakao.maps.Polyline({
         map: detailMap,
-        path,
-        strokeWeight: 4,
-        strokeColor: window.driverColors[driverId],
-        strokeOpacity: 0.9,
-        strokeStyle: 'solid'
+        path: gpsPath.map(p => new kakao.maps.LatLng(p.lat, p.lon)),
+        strokeWeight: 4, strokeColor: window.driverColors[driverId], strokeOpacity: 0.9
       });
     }
-
-    // 이벤트 마커
     events.forEach(e => {
-      if (!e.lat || !e.lon) return;
-      const marker = new kakao.maps.Marker({
-        map: detailMap,
-        position: new kakao.maps.LatLng(e.lat, e.lon),
-        title: '졸음 이벤트'
-      });
+      if (e.lat && e.lon) new kakao.maps.Marker({ map: detailMap, position: new kakao.maps.LatLng(e.lat, e.lon) });
     });
   }
 };
 
-// ── 지도 경로 렌더 ──
 window.renderAllPaths = function() {
-  // 기존 초기화
-  for (const lines of Object.values(window.polylines)) lines.forEach(l => l.setMap(null));
-  for (const markers of Object.values(window.eventMarkers)) markers.forEach(m => m.setMap(null));
-  for (const lines of Object.values(window.dangerPolylines)) lines.forEach(l => l.setMap(null));
-  window.polylines = {};
-  window.eventMarkers = {};
-  window.dangerPolylines = {};
+  if (!window.kakaoMap) return;
+  Object.values(window.polylines).flat().forEach(l => l.setMap(null));
+  Object.values(window.eventMarkers).flat().forEach(m => m.marker?.setMap(null));
+  Object.values(window.dangerPolylines).flat().forEach(l => l.setMap(null));
+  window.polylines = {}; window.eventMarkers = {}; window.dangerPolylines = {};
 
   const legend = document.getElementById('legend-list');
   legend.innerHTML = '';
-
   let firstPoint = null;
 
   for (const [id, d] of Object.entries(window.driversData)) {
     const color = window.driverColors[id];
-    const sessions = d.sessions;
+    const sessionKeys = Object.keys(d.sessions).sort().reverse();
+    if (!sessionKeys.length) continue;
+    const session = d.sessions[sessionKeys[0]];
+    const gpsPath = session.gps_path ? Object.values(session.gps_path) : [];
+    const events = session.events ? Object.values(session.events) : [];
+
     window.polylines[id] = [];
     window.eventMarkers[id] = [];
     window.dangerPolylines[id] = [];
 
-    let totalEvents = 0;
-    let allGpsPoints = [];
-    let allEvents = [];
-
-    // 최근 세션만 표시
-    const sessionKeys = Object.keys(sessions).sort().reverse();
-    const recentKey = sessionKeys[0];
-    if (!recentKey) continue;
-
-    const session = sessions[recentKey];
-    const gpsPath = session.gps_path ? Object.values(session.gps_path) : [];
-    const events = session.events ? Object.values(session.events) : [];
-    totalEvents = events.length;
-    allGpsPoints = gpsPath;
-    allEvents = events;
-
     if (gpsPath.length > 1) {
       const path = gpsPath.map(p => new kakao.maps.LatLng(p.lat, p.lon));
       if (!firstPoint) firstPoint = path[0];
-
-      const polyline = new kakao.maps.Polyline({
-        map: window.kakaoMap,
-        path,
-        strokeWeight: 4,
-        strokeColor: color,
-        strokeOpacity: 0.85,
-        strokeStyle: 'solid'
-      });
-      window.polylines[id].push(polyline);
+      window.polylines[id].push(new kakao.maps.Polyline({
+        map: window.kakaoMap, path,
+        strokeWeight: 4, strokeColor: color, strokeOpacity: 0.85
+      }));
     }
 
-    // 졸음 이벤트 마커
-    allEvents.forEach((e, i) => {
+    events.forEach((e, i) => {
       if (!e.lat || !e.lon) return;
-      const markerEl = new kakao.maps.Marker({
-        position: new kakao.maps.LatLng(e.lat, e.lon),
-        title: `졸음 이벤트 #${i+1}`
-      });
-      window.eventMarkers[id].push({ marker: markerEl, event: e, index: i });
+      const marker = new kakao.maps.Marker({ position: new kakao.maps.LatLng(e.lat, e.lon), title: `졸음 #${i+1}` });
+      window.eventMarkers[id].push({ marker, event: e });
     });
 
-    // 위험 구간 (1km 내 3회 이상)
-    detectDangerZones(id, allEvents, allGpsPoints);
+    // 위험 구간
+    const validEvt = events.filter(e => e.lat && e.lon);
+    for (let i = 0; i < validEvt.length; i++) {
+      const cluster = validEvt.filter(e => getDistance(validEvt[i].lat, validEvt[i].lon, e.lat, e.lon) <= 1000);
+      if (cluster.length >= 3) {
+        const first = cluster[0], last = cluster[cluster.length-1];
+        const dangerPath = gpsPath.filter(p => {
+          const t = new Date(p.timestamp).getTime();
+          return t >= new Date(first.timestamp).getTime() && t <= new Date(last.timestamp).getTime();
+        });
+        if (dangerPath.length > 1) {
+          window.dangerPolylines[id].push(new kakao.maps.Polyline({
+            path: dangerPath.map(p => new kakao.maps.LatLng(p.lat, p.lon)),
+            strokeWeight: 7, strokeColor: '#f85149', strokeOpacity: 0.95
+          }));
+        }
+        break;
+      }
+    }
 
-    // 레전드
     const item = document.createElement('div');
     item.className = 'driver-legend';
     item.id = `legend-${id}`;
-    item.innerHTML = `
-      <div class="legend-line" style="background:${color}"></div>
-      <div class="legend-name">${d.profile.name || id}</div>
-      <div class="legend-events">${totalEvents > 0 ? `⚠️ ${totalEvents}` : '정상'}</div>
-    `;
+    item.innerHTML = `<div class="legend-line" style="background:${color}"></div><div class="legend-name">${d.profile.name||id}</div><div class="legend-events">${events.length>0?'⚠️ '+events.length:'정상'}</div>`;
     item.onclick = () => selectDriver(id);
     legend.appendChild(item);
   }
-
   if (firstPoint) window.kakaoMap.setCenter(firstPoint);
 };
 
-function detectDangerZones(driverId, events, gpsPath) {
-  if (events.length < 3) return;
-  const validEvents = events.filter(e => e.lat && e.lon);
-
-  for (let i = 0; i < validEvents.length; i++) {
-    const cluster = [validEvents[i]];
-    for (let j = i+1; j < validEvents.length; j++) {
-      const dist = getDistance(validEvents[i].lat, validEvents[i].lon, validEvents[j].lat, validEvents[j].lon);
-      if (dist <= 1000) cluster.push(validEvents[j]);
-    }
-    if (cluster.length >= 3) {
-      const first = cluster[0];
-      const last = cluster[cluster.length-1];
-      // 위험 구간 경로 추출
-      const dangerPath = gpsPath.filter(p => {
-        const t = new Date(p.timestamp).getTime();
-        return t >= new Date(first.timestamp).getTime() && t <= new Date(last.timestamp).getTime();
-      });
-      if (dangerPath.length > 1) {
-        const path = dangerPath.map(p => new kakao.maps.LatLng(p.lat, p.lon));
-        const line = new kakao.maps.Polyline({
-          path,
-          strokeWeight: 7,
-          strokeColor: '#f85149',
-          strokeOpacity: 0.95,
-          strokeStyle: 'solid'
-        });
-        window.dangerPolylines[driverId].push(line);
-      }
-      break;
-    }
-  }
-}
-
 function getDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371000;
-  const dLat = (lat2-lat1) * Math.PI/180;
-  const dLon = (lon2-lon1) * Math.PI/180;
+  const R = 6371000, dLat=(lat2-lat1)*Math.PI/180, dLon=(lon2-lon1)*Math.PI/180;
   const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-// ── 운전자 선택 ──
 window.selectDriver = function(id) {
   if (window.selectedDriver === id) {
-    // 선택 해제
     window.selectedDriver = null;
-    deselectAll();
+    document.querySelectorAll('.driver-item,.driver-legend').forEach(el => el.classList.remove('active','selected'));
+    renderAllPaths();
     return;
   }
   window.selectedDriver = id;
-
-  // 사이드바 하이라이트
   document.querySelectorAll('.driver-item').forEach(el => el.classList.remove('active'));
   document.getElementById(`sidebar-${id}`)?.classList.add('active');
   document.querySelectorAll('.driver-legend').forEach(el => el.classList.remove('selected'));
   document.getElementById(`legend-${id}`)?.classList.add('selected');
 
-  // 색상 전환 애니메이션
   for (const [did, lines] of Object.entries(window.polylines)) {
-    const isSelected = did === id;
-    lines.forEach(l => {
-      l.setOptions({
-        strokeColor: isSelected ? '#3fb950' : window.driverColors[did],
-        strokeOpacity: isSelected ? 1.0 : 0.2,
-        strokeWeight: isSelected ? 6 : 3
-      });
-    });
+    const sel = did === id;
+    lines.forEach(l => l.setOptions({ strokeColor: sel?'#3fb950':window.driverColors[did], strokeOpacity: sel?1.0:0.2, strokeWeight: sel?6:3 }));
   }
-
-  // 위험 구간 표시/숨김
   for (const [did, lines] of Object.entries(window.dangerPolylines)) {
-    lines.forEach(l => {
-      if (did === id) {
-        l.setMap(window.kakaoMap);
-      } else {
-        l.setMap(null);
-      }
-    });
+    lines.forEach(l => l.setMap(did===id ? window.kakaoMap : null));
   }
-
-  // 이벤트 마커 표시
   for (const [did, markers] of Object.entries(window.eventMarkers)) {
-    markers.forEach(({ marker, event, index }) => {
+    markers.forEach(({ marker, event }) => {
       if (did === id) {
         marker.setMap(window.kakaoMap);
-        kakao.maps.event.addListener(marker, 'click', () => showEventPopup(event, index));
-      } else {
-        marker.setMap(null);
-      }
+        kakao.maps.event.addListener(marker, 'click', () => showEventPopup(event));
+      } else marker.setMap(null);
     });
   }
-
-  // 지도 이동
   const d = window.driversData[id];
-  if (d?.currentGps?.lat) {
-    window.kakaoMap.setCenter(new kakao.maps.LatLng(d.currentGps.lat, d.currentGps.lon));
-  }
+  if (d?.currentGps?.lat) window.kakaoMap.setCenter(new kakao.maps.LatLng(d.currentGps.lat, d.currentGps.lon));
 };
 
-function deselectAll() {
-  document.querySelectorAll('.driver-item').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.driver-legend').forEach(el => el.classList.remove('selected'));
-  for (const lines of Object.values(window.polylines)) {
-    lines.forEach((l, i) => {
-      // 원래 색으로
-    });
-  }
-  for (const markers of Object.values(window.eventMarkers)) {
-    markers.forEach(({ marker }) => marker.setMap(null));
-  }
-  for (const lines of Object.values(window.dangerPolylines)) {
-    lines.forEach(l => l.setMap(null));
-  }
-  renderAllPaths();
-}
-
-// ── 이벤트 팝업 ──
-window.showEventPopup = function(event, index) {
-  const popup = document.getElementById('event-popup');
+window.showEventPopup = function(event) {
   const t = new Date(event.timestamp).toLocaleString('ko-KR');
-  const stateLabel = event.state === 2 ? '졸음 감지' : '심각한 졸음';
-
   document.getElementById('popup-content').innerHTML = `
     <div class="row"><span>시각</span><span>${t}</span></div>
-    <div class="row"><span>상태</span><span style="color:${event.state>=3?'var(--red)':'var(--yellow)'}">${stateLabel}</span></div>
-    <div class="row"><span>위치</span><span>${event.lat?.toFixed(5)}, ${event.lon?.toFixed(5)}</span></div>
-  `;
-
-  popup.style.display = 'block';
-  popup.style.top = '80px';
-  popup.style.left = '50%';
-  popup.style.transform = 'translateX(-50%)';
+    <div class="row"><span>상태</span><span style="color:var(--yellow)">졸음 감지</span></div>
+    <div class="row"><span>위치</span><span>${event.lat?.toFixed(5)}, ${event.lon?.toFixed(5)}</span></div>`;
+  document.getElementById('event-popup').style.display = 'block';
 };
+window.closePopup = function() { document.getElementById('event-popup').style.display = 'none'; };
 
-window.closePopup = function() {
-  document.getElementById('event-popup').style.display = 'none';
-};
-
-// ── 탭 전환 ──
 window.switchTab = function(tab) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
   document.getElementById(`tab-${tab}`).classList.add('active');
   document.getElementById(`nav-${tab}`).classList.add('active');
-
-  const titles = { map: '전체 운전자 현황', drivers: '운전자 상태' };
-  document.getElementById('topbar-title').textContent = titles[tab];
-
-  if (tab === 'map' && window.kakaoMap) {
-    setTimeout(() => window.renderAllPaths(), 100);
-  }
+  document.getElementById('topbar-title').textContent = tab==='map'?'전체 운전자 현황':'운전자 상태';
+  if (tab==='map' && window.kakaoMap) setTimeout(()=>renderAllPaths(), 100);
 };
 
-// ── 로그인 ──
 window.doLogin = function() {
   const id = document.getElementById('login-id').value;
   const pw = document.getElementById('login-pw').value;
-  if (id === 'admin' && pw === 'admin') {
+  if (id==='admin' && pw==='admin') {
     document.getElementById('login-screen').style.display = 'none';
     window.loadAllData();
+    if (window.kakaoMap) renderAllPaths();
+    else window._pendingLoad = true;
   } else {
     document.getElementById('login-error').style.display = 'block';
   }
 };
-
-document.getElementById('login-pw').addEventListener('keydown', e => {
-  if (e.key === 'Enter') window.doLogin();
-});
-
+document.getElementById('login-pw').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
 </script>
 
 <!-- 카카오맵 -->
 <script>
-function initMap() {
-  const container = document.getElementById('map');
-  const options = {
-    center: new kakao.maps.LatLng(37.5421671, 126.8415778),
-    level: 6
-  };
+kakao.maps.load(function() {
+  var container = document.getElementById('map');
+  var options = { center: new kakao.maps.LatLng(37.5421671, 126.8415778), level: 6 };
   window.kakaoMap = new kakao.maps.Map(container, options);
-}
+  if (window._pendingLoad) {
+    window._pendingLoad = false;
+    window.loadAllData();
+  }
+});
 </script>
-<script src="https://dapi.kakao.com/v2/maps/sdk.js?appkey=5735c411c5a31661741adfbd0cd7857d&onload=initMap"></script>
 
 </body>
 </html>

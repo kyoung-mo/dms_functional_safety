@@ -24,20 +24,15 @@ def can_reader_thread():
             current_state = driver_state
             lat = latest_gps.get("lat")
             lon = latest_gps.get("lon")
-
             socketio.emit("state_update", {
                 "state": driver_state,
                 "alive": rpi_alive,
                 "lat": lat,
                 "lon": lon
             })
-
             if driver_state >= 2:
-                # SQLite 저장 (기존 유지)
                 save_event(driver_state, lat, lon)
-                # Firebase 저장 (추가)
                 save_event_firebase(driver_state, lat, lon)
-
     except Exception as e:
         print(f"[CAN ERROR] {e}")
 
@@ -48,6 +43,10 @@ def gps_sender():
 @app.route("/")
 def index():
     return render_template("index.html")
+
+@app.route("/control")
+def control():
+    return render_template("control_center.html")
 
 if __name__ == "__main__":
     start()
