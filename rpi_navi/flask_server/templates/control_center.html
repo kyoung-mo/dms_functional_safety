@@ -368,9 +368,25 @@ window.openDriverDetail = function(id) {
   document.querySelectorAll('.driver-card').forEach(c => c.classList.remove('selected'));
   document.getElementById(`card-${id}`)?.classList.add('selected');
 
-  const sessionOptions = sessionKeys.map(k =>
-    `<option value="${k}">${k.replace('_',' ').replace(/(\d{4})(\d{2})(\d{2})/,'$1-$2-$3')}</option>`
-  ).join('');
+  const dateGroups = {};
+  sessionKeys.forEach(k => {
+    const date = k.slice(0,8);
+    const hh = k.slice(9,11);
+    const mm = k.slice(11,13);
+    const dateLabel = date.slice(0,4)+'-'+date.slice(4,6)+'-'+date.slice(6,8);
+    const timeLabel = hh+':'+mm;
+    if (!dateGroups[date]) dateGroups[date] = [];
+    dateGroups[date].push({ key: k, dateLabel, timeLabel });
+  });
+  const sessionOptions = Object.entries(dateGroups).map(([date, sessions]) => {
+    if (sessions.length === 1) {
+      return '<option value="'+sessions[0].key+'">'+sessions[0].dateLabel+' '+sessions[0].timeLabel+'</option>';
+    } else {
+      return sessions.map((s,i) =>
+        '<option value="'+s.key+'">'+s.dateLabel+' '+s.timeLabel+' ('+(i+1)+'회차)</option>'
+      ).join('');
+    }
+  }).join('');
 
   const detail = document.getElementById('driver-detail');
   detail.className = 'open';
@@ -518,41 +534,152 @@ window.selectDriver = function(id) {
   if (window.selectedDriver === id) {
     window.selectedDriver = null;
     document.querySelectorAll('.driver-item,.driver-legend').forEach(el => el.classList.remove('active','selected'));
-    renderAllPaths();
+    // 마커 숨기기
+    for (const markers of Object.values(window.eventMarkers)) {
+      markers.forEach(({ marker }) => marker.setMap(null));
+    }
+    // 위험 구간 서서히 사라지기
+    for (const lines of Object.values(window.dangerPolylines)) {
+      lines.forEach(l => {
+        animateDangerLine(l, 0.95, 0, 600, () => l.setMap(null));
+      });
+    }
+    // 경로 원래 색으로 부드럽게 복귀
+    animatePolylines(null);
     return;
   }
+
   window.selectedDriver = id;
   document.querySelectorAll('.driver-item').forEach(el => el.classList.remove('active'));
   document.getElementById(`sidebar-${id}`)?.classList.add('active');
   document.querySelectorAll('.driver-legend').forEach(el => el.classList.remove('selected'));
   document.getElementById(`legend-${id}`)?.classList.add('selected');
 
-  for (const [did, lines] of Object.entries(window.polylines)) {
-    const sel = did === id;
-    lines.forEach(l => l.setOptions({ strokeColor: sel?'#3fb950':window.driverColors[did], strokeOpacity: sel?1.0:0.2, strokeWeight: sel?6:3 }));
-  }
+  // 색상 애니메이션
+  animatePolylines(id);
+
+  // 위험 구간 표시 (서서히)
   for (const [did, lines] of Object.entries(window.dangerPolylines)) {
-    lines.forEach(l => l.setMap(did===id ? window.kakaoMap : null));
+    if (did === id) {
+      lines.forEach(l => {
+        l.setMap(window.kakaoMap);
+        l.setOptions({ strokeOpacity: 0 });
+        animateDangerLine(l, 0, 0.95, 800);
+      });
+    } else {
+      lines.forEach(l => l.setMap(null));
+    }
   }
+
+  // 졸음 이벤트 마커 (리스너 중복 방지)
   for (const [did, markers] of Object.entries(window.eventMarkers)) {
     markers.forEach(({ marker, event }) => {
+      kakao.maps.event.removeListener(marker, 'click');
       if (did === id) {
         marker.setMap(window.kakaoMap);
-        kakao.maps.event.addListener(marker, 'click', () => showEventPopup(event));
-      } else marker.setMap(null);
+        kakao.maps.event.addListener(marker, 'click', () => showEventPopup(event, marker));
+      } else {
+        marker.setMap(null);
+      }
     });
   }
+
+  // 지도 부드럽게 이동
   const d = window.driversData[id];
-  if (d?.currentGps?.lat) window.kakaoMap.setCenter(new kakao.maps.LatLng(d.currentGps.lat, d.currentGps.lon));
+  const path = window.polylines[id];
+  if (path && path.length > 0) {
+    // 경로 중간 지점으로 이동
+    const latLngs = path[0].getPath();
+    if (latLngs && latLngs.length > 0) {
+      const mid = latLngs[Math.floor(latLngs.length / 2)];
+      window.kakaoMap.panTo(mid);
+    }
+  } else if (d?.currentGps?.lat) {
+    window.kakaoMap.panTo(new kakao.maps.LatLng(d.currentGps.lat, d.currentGps.lon));
+  }
 };
 
-window.showEventPopup = function(event) {
+// 위험 구간 opacity 애니메이션
+function animateDangerLine(line, fromOpacity, toOpacity, duration, callback) {
+  const startTime = performance.now();
+  function animate(now) {
+    const t = Math.min((now - startTime) / duration, 1);
+    const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+    const opacity = fromOpacity + (toOpacity - fromOpacity) * ease;
+    line.setOptions({ strokeOpacity: Math.max(0, Math.min(1, opacity)) });
+    if (t < 1) {
+      requestAnimationFrame(animate);
+    } else if (callback) {
+      callback();
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+// 부드러운 색상 전환 애니메이션 (requestAnimationFrame 기반)
+function animatePolylines(selectedId) {
+  const DURATION = 800; // ms
+  const startTime = performance.now();
+
+  const startOpacity = {};
+  const targetOpacity = {};
+  const targetColor = {};
+  const targetWeight = {};
+
+  for (const [did, lines] of Object.entries(window.polylines)) {
+    const isSelected = did === selectedId;
+    const isNone = selectedId === null;
+    startOpacity[did] = window._currentOpacity?.[did] ?? 0.85;
+    targetOpacity[did] = isNone ? 0.85 : (isSelected ? 1.0 : 0.12);
+    targetColor[did] = isSelected ? '#3fb950' : window.driverColors[did];
+    targetWeight[did] = isSelected ? 6 : (isNone ? 4 : 3);
+  }
+
+  if (!window._currentOpacity) window._currentOpacity = {};
+
+  if (window._animFrame) cancelAnimationFrame(window._animFrame);
+
+  function animate(now) {
+    const elapsed = now - startTime;
+    const t = Math.min(elapsed / DURATION, 1);
+    const ease = t < 0.5 ? 2*t*t : -1+(4-2*t)*t;
+
+    for (const [did, lines] of Object.entries(window.polylines)) {
+      const opacity = startOpacity[did] + (targetOpacity[did] - startOpacity[did]) * ease;
+      window._currentOpacity[did] = opacity;
+      lines.forEach(l => l.setOptions({
+        strokeColor: targetColor[did],
+        strokeOpacity: Math.max(0.05, Math.min(1.0, opacity)),
+        strokeWeight: targetWeight[did]
+      }));
+    }
+
+    if (t < 1) {
+      window._animFrame = requestAnimationFrame(animate);
+    } else {
+      window._animFrame = null;
+    }
+  }
+
+  window._animFrame = requestAnimationFrame(animate);
+}
+
+window.showEventPopup = function(event, marker) {
   const t = new Date(event.timestamp).toLocaleString('ko-KR');
   document.getElementById('popup-content').innerHTML = `
     <div class="row"><span>시각</span><span>${t}</span></div>
     <div class="row"><span>상태</span><span style="color:var(--yellow)">졸음 감지</span></div>
     <div class="row"><span>위치</span><span>${event.lat?.toFixed(5)}, ${event.lon?.toFixed(5)}</span></div>`;
-  document.getElementById('event-popup').style.display = 'block';
+  const popup = document.getElementById('event-popup');
+  popup.style.display = 'block';
+  // 마커 위치 기반으로 팝업 위치 조정
+  if (marker && window.kakaoMap) {
+    const proj = window.kakaoMap.getProjection();
+    const pos = proj.containerPointFromCoords(marker.getPosition());
+    popup.style.left = Math.min(pos.x, window.kakaoMap.getNode().offsetWidth - 220) + 'px';
+    popup.style.top = Math.max(10, pos.y - 120) + 'px';
+    popup.style.transform = 'none';
+  }
 };
 window.closePopup = function() { document.getElementById('event-popup').style.display = 'none'; };
 
@@ -570,9 +697,15 @@ window.doLogin = function() {
   const pw = document.getElementById('login-pw').value;
   if (id==='admin' && pw==='admin') {
     document.getElementById('login-screen').style.display = 'none';
-    window.loadAllData();
-    if (window.kakaoMap) renderAllPaths();
-    else window._pendingLoad = true;
+    window.loadAllData().then(() => {
+      kakao.maps.load(function() {
+        var container = document.getElementById('map');
+        window.kakaoMap = new kakao.maps.Map(container, {
+          center: new kakao.maps.LatLng(37.5422, 126.8416), level: 7
+        });
+        window.renderAllPaths();
+      });
+    });
   } else {
     document.getElementById('login-error').style.display = 'block';
   }
