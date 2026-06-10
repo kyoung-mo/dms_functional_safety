@@ -58,47 +58,15 @@ AI가 다운돼도 STM32는 독립적으로 Heartbeat를 감시하고 CAN DTC를
 
 ## 🏗️ Architecture
 
-<!-- 시스템 아키텍처 이미지 -->
-<img src="./docs/assets/system_architecture.svg" width="100%"/>
+<img width="1089" height="893" alt="image" src="https://github.com/user-attachments/assets/55da42ff-406c-46ae-9343-73a5b639684f" />
+
+---
 
 | 노드 | 보드 | 역할 | 설계 원칙 |
 |---|---|---|---|
 | RPi5 졸음 인식 노드 | Raspberry Pi 5 + Hailo-8 NPU | AI 추론 — YOLOv8-face / face_landmarks_lite / PERCLOS 판정 / UART 송신 | AI는 추론만. 안전 판단·경고 출력은 STM32가 전담 |
 | STM32 안전 제어 노드 | B-L475E-IOT01A2 (STM32L476) | FreeRTOS — UART Rx / CAN Tx / Heartbeat 감시 / DTC 송출 | AI 노드 다운과 무관하게 독립 동작. 결정적 실시간성 보장 |
 | RPi5 네비 노드 | Raspberry Pi 5 + MCP2515 | 네비게이션 — CAN 수신 / Kakao Maps / Firebase GPS·이벤트 저장 / SQLite 로그 | 졸음 이벤트·GPS를 Firebase에 업로드 → 관제 센터 웹에서 통합 조회 |
-
----
-
-## 🔄 System Flow
-
-```
-[RPi5 졸음 인식 노드]
- 카메라 → YOLOv8-face(NPU) → 얼굴 크롭 → face_landmarks_lite(NPU) → EAR 468점 → PERCLOS 판정
-                                                                                      │
-                                               UART 바이너리 프레임 (100ms 주기)
-                                            [0xAA | State | EAR×100 | Seq | Checksum]
-                                                                                      ▼
-[STM32 안전 제어 노드 — FreeRTOS 4-Task]
- ┌─ Task_Watchdog  (Highest) ─ UART Heartbeat 500ms 감시 → 단절 시 DTC 0x7DF CAN 송출
- ├─ Task_CAN_Tx   (High)    ─ 졸음 상태 CAN 0x100 100ms 주기 송신
- ├─ Task_UART_Rx  (Medium)  ─ RPi5 바이너리 프레임 수신 · Queue 전달
- └─ Task_Alert    (Medium)  ─ LED 상태 표시 (0=꺼짐 / 1=500ms 깜빡 / 2=점등)
-                                                              │
-                                                   CAN Bus 500kbps
-                                                              ▼
-[RPi5 네비 노드]
- MCP2515 CAN 수신 → Flask/SocketIO → 카카오맵 JS → 졸음 이벤트 마커 실시간 표시
-                                   → Firebase /sessions/{driver_id}/{session_id}/events → 졸음 이벤트 저장
-                                   → Firebase /sessions/{driver_id}/{session_id}/gps_path → GPS 경로 저장
-
-[삼성폰 PWA]
- geolocation → Firebase /gps/{driver_id} (실시간 현재 위치)
- RPi5 네비가 2초 폴링 → 카카오맵 경로 실시간 표시
-
-[관제 센터 웹]
- Firebase /drivers, /sessions, /gps 직접 조회
- → 운전자별 주행 세션 / GPS 경로 / 졸음 이벤트 이력 통합 대시보드
-```
 
 ---
 
