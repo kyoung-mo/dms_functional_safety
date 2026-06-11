@@ -8,7 +8,7 @@ from hailo_platform import (HEF, VDevice, HailoStreamInterface,
 
 HEF_PATH = Path(__file__).resolve().parent.parent / "models" / "face_landmarks_lite.hef"
 IMG_PATH = "/home/pi/project/face-security-system/data/test.jpg"
-OUT_PATH = "/home/pi/project/dms/rpi5/inference/landmarks_result.jpg"
+OUT_PATH = "/home/pi/project/dms/rpi5_ai/inference/landmarks_result.jpg"
 
 # 이미지 준비 (192x192)
 frame = cv2.imread(IMG_PATH)

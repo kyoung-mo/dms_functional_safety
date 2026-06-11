@@ -30,3 +30,4 @@ __pycache__/
 **/Drivers/
 rpi5_navi/db/*.db
 hailort*.log
+hailort*.log
