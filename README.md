@@ -58,14 +58,13 @@ AI가 다운돼도 STM32는 독립적으로 Heartbeat를 감시하고 CAN DTC를
 
 ## 🏗️ Architecture
 
-<img width="1089" height="893" alt="image" src="https://github.com/user-attachments/assets/55da42ff-406c-46ae-9343-73a5b639684f" />
+<img width="1089" height="893" alt="image" src="https://github.com/user-attachments/assets/8c185ec4-411a-42d2-86a1-8812afad9142" />
 
----
 
 | 노드 | 보드 | 역할 | 설계 원칙 |
 |---|---|---|---|
 | RPi5 졸음 인식 노드 | Raspberry Pi 5 + Hailo-8 NPU | AI 추론 — YOLOv8-face / face_landmarks_lite / PERCLOS 판정 / UART 송신 | AI는 추론만. 안전 판단·경고 출력은 STM32가 전담 |
-| STM32 안전 제어 노드 | B-L475E-IOT01A2 (STM32L476) | FreeRTOS — UART Rx / CAN Tx / Heartbeat 감시 / DTC 송출 | AI 노드 다운과 무관하게 독립 동작. 결정적 실시간성 보장 |
+| STM32 안전 제어 노드 | B-L475E-IOT01A2 (STM32L475) | FreeRTOS — UART Rx / CAN Tx / Heartbeat 감시 / DTC 송출 | AI 노드 다운과 무관하게 독립 동작. 결정적 실시간성 보장 |
 | RPi5 네비 노드 | Raspberry Pi 5 + MCP2515 | 네비게이션 — CAN 수신 / Kakao Maps / Firebase GPS·이벤트 저장 / SQLite 로그 | 졸음 이벤트·GPS를 Firebase에 업로드 → 관제 센터 웹에서 통합 조회 |
 
 ---
@@ -76,13 +75,13 @@ AI가 다운돼도 STM32는 독립적으로 Heartbeat를 감시하고 CAN DTC를
 
 | CAN ID | 메시지 명 | 방향 | 주기 | 구분 | 설명 |
 |---|---|---|---|---|---|
-| `0x100` | `DMS_State` | STM32 → RPi5 네비 | 100ms | **구현** | 졸음 상태 (0=정상/1=주의/2=위험) + EAR 값 |
-| `0x101` | `DMS_ACK` | RPi5 네비 → STM32 | 수신 시마다 | **구현** | 수신 확인 ACK |
-| `0x7DF` | `DMS_DTC` | STM32 → CAN Bus | 이벤트 | **구현** | 고장 코드 (Heartbeat 단절 감지 시) |
-| `0x200` | `DMS_ECU_Heartbeat` | STM32 → RPi5 네비 | 500ms | 예정 | STM32 생존 확인 (역방향 Heartbeat) |
+| `0x100` | `DMS_State` | STM32 → RPi5 네비 | 100ms | **구현** | 졸음 상태 (0=정상/1=주의/2=위험) + AI 생존 + EAR 값 |
+| `0x101` | `DMS_ACK` | RPi5 네비 → STM32 | 수신 시마다 | **구현** | 수신 확인 ACK (핑퐁 검증 완료) |
+| `0x200` | `DMS_ECU_Heartbeat` | STM32 → RPi5 네비 | 500ms | **구현** | STM32 생존 카운터 (역방향 Heartbeat) |
+| `0x7DF` | `DMS_DTC` | STM32 → CAN Bus | 이벤트 | **구현** | 고장 코드 (Heartbeat 단절 감지 시, UDS ID 차용) |
 | `0x110` | `DMS_SystemStatus` | STM32 → RPi5 네비 | 1000ms | 예정 | 시스템 헬스 (AI 노드 연결·카메라·Failsafe) |
 | `0x120` | `DMS_Session` | STM32 → CAN Bus | 이벤트 | 예정 | 주행 세션 시작·종료 |
-| `0x102` | `DMS_Driver_Response` | RPi5 네비 → STM32 | 이벤트 | 예정 | 운전자 경고 확인 (터치 버튼 → 알림 리셋) |
+| `0x102` | `DMS_Driver_Response` | RPi5 네비 → STM32 | 이벤트 | 예정 | 운전자 경고 확인 — STM32 수신 콜백은 준비 완료, 네비 송신·알림 완화 로직 예정 |
 
 > `0x7DF`: UDS(ISO 14229) 표준 진단 요청 ID 차용 → 실차 진단 장비 호환.
 
@@ -94,11 +93,13 @@ AI가 다운돼도 STM32는 독립적으로 Heartbeat를 감시하고 CAN DTC를
 - Hailo-8 NPU에서 YOLOv8-face + face_landmarks_lite 듀얼 모델 동시 실행 (VDevice 공유)
 - ONNX → HAR → HEF 변환 파이프라인 직접 구축 (Hailo DFC 3.33.1, Model Zoo 2.18.0)
 - PERCLOS: 동적 임계값 (상위 10% EAR × 0.75), 1.5초 지속 시 졸음 판정 (3단계)
-- EAR 고정 임계값 0.223 (1000장 데이터셋 기반 최적 임계값 탐색, F1 79.5% 최고점)
+- **졸음 모드 임계값 동결 (is_drowsy)**: 졸음 중 EAR 누적 중단 + 진입 시점 임계값 동결 → 캘리브레이션 오염 방지, 10프레임 연속 눈뜸 확인 후 복귀
+- EAR 고정 임계값 0.223 (1000장 데이터셋 기반 최적 임계값 탐색, 졸음 모드 fallback으로 사용)
 
-**FreeRTOS 기반 기능안전**
-- 4개 태스크 우선순위 스케줄링 — AI 연산 부하와 무관하게 안전 기능 지연 없이 동작
+**FreeRTOS 기반 기능안전 (구현·검증 완료)**
+- 4-Task 우선순위 스케줄링 — AI 연산 부하와 무관하게 안전 기능 지연 없이 동작
 - Heartbeat 감시: AI 노드 UART 프레임 500ms 미수신 → Failsafe → DTC `0x7DF` 송출
+- **단절 → DTC 반응 시간: 베어메탈 ~1.5초 → FreeRTOS ~0.6초 (2.5배 개선, candump 실측)**
 - UART 바이너리 프레임: 고정 5바이트 [0xAA, State, EAR×100, Seq, Checksum], 100ms 주기
 
 **Firebase 기반 관제 대시보드**
@@ -164,14 +165,18 @@ dms_functional_safety/
 │   └── infer_data/        # 라벨 이미지 1000장 (*_open.jpg / *_close.jpg)
 ├── dbc/                   # CAN 메시지 정의 (DBC, Vector CANdb++)
 ├── docs/                  # 설계 문서 · 인터페이스 정의서
-├── rpi5/                  # 졸음 인식 노드 (Python, HailoRT)
+├── rpi5_ai/               # 졸음 인식 노드 (Python, HailoRT)
 │   ├── models/            # HEF 모델 (YOLOv8-face, face_landmarks_lite)
-│   └── inference/         # 추론 루프, 벤치마크 스크립트
-├── rpi_navi/              # 네비 노드 (Python/Flask)
-│   ├── flask_server/      # Flask + SocketIO + CAN 수신
+│   └── inference/         # 추론 루프 (perclos_uart.py), 벤치마크 스크립트
+├── rpi5_navi/             # 네비 노드 (Python/Flask)
+│   ├── flask_server/      # Flask + SocketIO + CAN 수신/ACK
 │   │   └── templates/     # 카카오맵 네비 + 관제 센터 웹
-│   └── firebase_gps.py    # Firebase GPS·이벤트 저장
-└── stm32/                 # 안전 제어 노드 (C, FreeRTOS)
+│   ├── gps/               # Firebase GPS·이벤트 저장
+│   └── db/                # SQLite 로컬 백업
+└── stm32/                 # 안전 제어 노드 (C)
+    ├── DMS_init/          #   공통 베이스 (핀맵·클럭)
+    ├── DMS_baremetal/     #   베어메탈 구현 (검증 완료 보존)
+    └── DMS_FreeRTOS/      #   FreeRTOS 4-Task 구현 (최종 채택)
 ```
 
 ---
@@ -181,18 +186,18 @@ dms_functional_safety/
 **RPi5 졸음 인식 노드**
 ```bash
 source ~/dms_env/bin/activate
-cd rpi5 && python inference/perclos_uart.py
+cd rpi5_ai && python inference/perclos_uart.py
 ```
 
 **RPi5 네비 노드**
 ```bash
 sudo ip link set can0 up type can bitrate 500000
-cd rpi_navi && PYTHONPATH=. python flask_server/app.py
+cd rpi5_navi && PYTHONPATH=. python flask_server/app.py
 ```
 
 **STM32 안전 제어 노드**
 ```
-STM32CubeIDE: Build → Flash (ST-Link/V2)
+STM32CubeIDE: DMS_FreeRTOS import → Build → Flash (ST-Link)
 ```
 
 ---
@@ -203,7 +208,7 @@ STM32CubeIDE: Build → Flash (ST-Link/V2)
 |---|---|
 | 졸음 인식 노드 | Raspberry Pi 5, Python 3.13.5, HailoRT 4.23.0 |
 | 모델 변환 | WSL Ubuntu 24.04, Python 3.10, Hailo DFC 3.33.1 |
-| 안전 제어 노드 | STM32L476 (B-L475E-IOT01A2), FreeRTOS, STM32CubeIDE |
+| 안전 제어 노드 | STM32L475 (B-L475E-IOT01A2), FreeRTOS (CMSIS-V2), STM32CubeIDE |
 | 네비 노드 | Raspberry Pi 5, Python 3.13.5, Flask + SocketIO, MCP2515 |
 | GPS / 관제 | 삼성 갤럭시 PWA, Chrome, Firebase Realtime DB |
 
@@ -212,7 +217,8 @@ STM32CubeIDE: Build → Flash (ST-Link/V2)
 ## 🎯 산출물
 
 - 실행 가능한 3-노드 프로토타입 (RPi5 AI 추론 + STM32 FreeRTOS 안전 제어 + 네비 연동)
-- DBC 파일 및 UART 인터페이스 정의서 (구현 3개 + 예정 4개 메시지)
+- 베어메탈·FreeRTOS 이중 구현 및 DTC 반응 속도 실측 비교 (1.5초 → 0.6초)
+- DBC 파일 및 UART 인터페이스 정의서 (구현 4개 + 예정 3개 메시지)
 - 5가지 환경 NPU 벤치마크 결과 (HEF+HEF CPU 대비 4.3배 향상)
 - 실시간 카카오맵 네비게이션 + Firebase 기반 관제 센터 웹 대시보드
 - 기술 블로그 ([Velog](https://velog.io/@mommers))
