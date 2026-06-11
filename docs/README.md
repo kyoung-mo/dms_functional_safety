@@ -21,7 +21,7 @@ DMS 시스템의 설계 문서, 인터페이스 정의, 알고리즘 상세, 벤
 프로젝트 전반의 기술 문서를 보관하는 디렉토리.
 
 개발 착수 전 UART 프레임 구조 · CAN 메시지 ID · Heartbeat 규약을 동결하여
-AI 노드(rpi5)와 안전 제어 노드(stm32)가 독립적으로 개발 가능하도록 기준을 확정했다.
+AI 노드(rpi5_ai)와 안전 제어 노드(stm32)가 독립적으로 개발 가능하도록 기준을 확정했다.
 
 ---
 
@@ -68,13 +68,13 @@ RPi5 AI 노드 → STM32 단방향 송신 (100ms 주기, Heartbeat 겸용)
 
 | CAN ID | 메시지 명 | 방향 | 주기 | 구분 | 설명 |
 |---|---|---|---|---|---|
-| `0x100` | `DMS_State` | STM32 → RPi5 네비 | 100ms | **구현** | 졸음 상태 + EAR 값 |
-| `0x101` | `DMS_ACK` | RPi5 네비 → STM32 | 수신 시마다 | **구현** | 수신 확인 ACK |
+| `0x100` | `DMS_State` | STM32 → RPi5 네비 | 100ms | **구현** | 졸음 상태 + AI 생존 + EAR 값 |
+| `0x101` | `DMS_ACK` | RPi5 네비 → STM32 | 수신 시마다 | **구현** | 수신 확인 ACK (핑퐁 검증 완료) |
+| `0x200` | `DMS_ECU_Heartbeat` | STM32 → RPi5 네비 | 500ms | **구현** | STM32 생존 카운터 |
 | `0x7DF` | `DMS_DTC` | STM32 → CAN Bus | 이벤트 | **구현** | 고장 코드 (Heartbeat 단절) |
-| `0x200` | `DMS_ECU_Heartbeat` | STM32 → RPi5 네비 | 500ms | 예정 | STM32 생존 확인 |
 | `0x110` | `DMS_SystemStatus` | STM32 → RPi5 네비 | 1000ms | 예정 | 시스템 헬스 상태 |
 | `0x120` | `DMS_Session` | STM32 → CAN Bus | 이벤트 | 예정 | 주행 세션 시작·종료 |
-| `0x102` | `DMS_Driver_Response` | RPi5 네비 → STM32 | 이벤트 | 예정 | 운전자 경고 확인 여부 |
+| `0x102` | `DMS_Driver_Response` | RPi5 네비 → STM32 | 이벤트 | 예정 | 운전자 경고 확인 (STM32 수신 콜백 준비 완료) |
 
 ---
 
