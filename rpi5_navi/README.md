@@ -1,4 +1,4 @@
-# 🗺️ rpi_navi — 네비게이션 · 관제 연동 노드
+# 🗺️ rpi5_navi — 네비게이션 · 관제 연동 노드
 
 > RPi5 기반 Flask 웹서버 + 카카오맵 JS + Firebase GPS·이벤트 저장 + 관제 센터 웹  
 > CAN 0x100 수신(MCP2515) → 졸음 이벤트·GPS 경로 Firebase 저장 → 관제 센터에서 통합 조회
@@ -20,7 +20,8 @@
 
 ## 개요
 
-CAN Bus에서 STM32의 졸음 상태(`0x100`)를 MCP2515로 수신하고,
+CAN Bus에서 STM32의 졸음 상태(`0x100`)·DTC(`0x7DF`)를 MCP2515로 수신하고,
+`0x100` 수신 시마다 ACK(`0x101`)를 응답한다.
 Firebase Realtime DB에서 GPS 좌표를 폴링하여 카카오맵에 실시간으로 표시한다.
 
 졸음 이벤트(State=2) 발생 시 GPS 좌표·시각을 **Firebase에 저장**하고,
@@ -87,6 +88,7 @@ STM32 CAN 0x100 (100ms 주기)
 | **졸음 세션 관리** | 마지막 State=2 이후 5초 쿨다운으로 1 에피소드 집계 | 구현 |
 | **연결 상태 배너** | AI 노드 Heartbeat 단절 시 화면에 경고 배너 표시 | 구현 |
 | **CAN 로그 팝업** | 수신된 CAN 메시지 실시간 로그 확인 | 구현 |
+| **DTC 알림 수신** | `0x7DF` 수신 시 SocketIO `dtc_alert` 이벤트 발행 | 구현 |
 | **SQLite 로컬 백업** | 이벤트 로컬 저장 (네트워크 단절 대비) | 구현 |
 | **STM32 Heartbeat 감시** | `0x200` 미수신 시 화면 배너 + Firebase 이상 이벤트 | 예정 |
 | **시스템 헬스 표시** | `0x110` 수신하여 카메라·AI 노드 상태 상단 표시 | 예정 |
@@ -101,14 +103,15 @@ STM32 CAN 0x100 (100ms 주기)
 
 | CAN ID | 방향 | 처리 내용 |
 |---|---|---|
-| `0x100` | STM32 → 수신 | 졸음 상태 파싱 → 카카오맵 핀 표시 + Firebase 이벤트 저장 |
-| `0x101` | 송신 → STM32 | `0x100` 수신 시마다 ACK 송신 |
+| `0x100` | STM32 → 수신 | ID 필터링 후 졸음 상태 파싱 → 카카오맵 핀 표시 + Firebase 이벤트 저장 |
+| `0x101` | 송신 → STM32 | `0x100` 수신 시마다 ACK 송신 (try/except로 송신 실패가 수신 루프에 영향 없도록 처리) |
+| `0x7DF` | STM32 → 수신 | DTC 수신 → 콘솔 로그 + SocketIO `dtc_alert` 이벤트 발행 |
 
 ### 예정
 
 | CAN ID | 방향 | 처리 내용 |
 |---|---|---|
-| `0x200` | STM32 → 수신 | STM32 생존 확인. 1500ms 미수신 시 배너 표시 + Firebase 이상 이벤트 |
+| `0x200` | STM32 → 수신 | STM32 생존 감시 — STM32 측 송신은 구현 완료, 네비 측 타임아웃 감시 로직 예정 |
 | `0x110` | STM32 → 수신 | AI 노드·카메라·Failsafe 상태를 상단 상태바에 표시 |
 | `0x120` | STM32 → 수신 | 세션 시작(0x01)/종료(0x02) → Firebase 세션 경계 기록 |
 | `0x102` | 송신 → STM32 | 터치스크린 확인 버튼 → STM32 알림 리셋 |
@@ -126,7 +129,7 @@ sudo ip link set can0 up type can bitrate 500000
 sudo ip link set can0 txqueuelen 1000
 
 # Flask 서버 실행
-cd rpi_navi
+cd rpi5_navi
 PYTHONPATH=. python flask_server/app.py
 
 # 관제 센터 웹 접속
@@ -136,7 +139,7 @@ PYTHONPATH=. python flask_server/app.py
 # Chromium 전체화면 (5인치 디스플레이)
 chromium-browser --kiosk http://localhost:5000
 
-alias dms='PYTHONPATH=. python ~/dms/rpi_navi/flask_server/app.py'
+alias dms='PYTHONPATH=. python ~/projects/dms/rpi5_navi/flask_server/app.py'
 ```
 
 ---
@@ -181,17 +184,14 @@ STM32_HB_TIMEOUT  = 1.5         # 0x200 미수신 판정 임계 (초, 예정)
 ## 디렉토리 구조
 
 ```
-rpi_navi/
+rpi5_navi/
 ├── flask_server/
-│   ├── app.py                  # Flask + SocketIO 메인 서버
-│   ├── can_reader.py           # MCP2515 CAN 수신 스레드 (cantools 디코딩)
-│   └── templates/
-│       ├── navi.html           # 카카오맵 네비게이션 화면
-│       ├── fleet.html          # 관제 센터 웹 대시보드
-│       └── dashboard.html      # 주행 분석 대시보드
-├── firebase_gps.py             # Firebase GPS·이벤트 저장 (실시간 업로드)
-├── db.py                       # SQLite 로컬 백업
-├── config.py
+│   ├── app.py                  # Flask + SocketIO + can_reader_thread (0x100/0x7DF 분기, 0x101 ACK)
+│   └── templates/              # 카카오맵 네비 · 관제 센터 웹
+├── gps/
+│   └── firebase_gps.py         # Firebase GPS 폴링·이벤트 저장 (MIN_DIST_M 거리 필터)
+├── db/
+│   └── log.py                  # SQLite 로컬 백업
 └── README.md
 ```
 
@@ -223,3 +223,4 @@ pip install flask flask-socketio python-can cantools \
 - Firebase Mixed Content 우회: 삼성폰 geolocation → Firebase → RPi5 2초 폴링 구조
 - 졸음 이벤트는 **State=2 시에만** Firebase/SQLite 저장 (State=1은 화면 표시만)
 - driver_id는 `.env` 파일로 차량별 구분 → 관제 센터에서 운전자 식별
+- CAN 수신 루프는 반드시 `arbitration_id`로 분기할 것 — 필터 없이 `data[0]`을 state로 읽으면 `0x7DF`의 `0xFF`를 졸음 상태로 오인하는 버그 발생 (수정 완료)
