@@ -1,4 +1,4 @@
-with open('/home/pi/projects/dms/rpi_navi/flask_server/templates/control_center.html', 'r') as f:
+with open('/home/pi/projects/dms/rpi5_navi/flask_server/templates/control_center.html', 'r') as f:
     c = f.read()
 
 old = '''  // 날짜별 그룹화
@@ -51,5 +51,5 @@ if old in c:
 else:
     print("못 찾음")
 
-with open('/home/pi/projects/dms/rpi_navi/flask_server/templates/control_center.html', 'w') as f:
+with open('/home/pi/projects/dms/rpi5_navi/flask_server/templates/control_center.html', 'w') as f:
     f.write(c)

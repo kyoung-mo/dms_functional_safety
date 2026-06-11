@@ -2,7 +2,7 @@ import firebase_admin
 from firebase_admin import credentials, db
 import datetime, random, math
 
-CREDENTIAL_PATH = "/home/pi/projects/dms/rpi_navi/gps/dms-navi-firebase-adminsdk-fbsvc-2f5171bc60.json"
+CREDENTIAL_PATH = "/home/pi/projects/dms/rpi5_navi/gps/dms-navi-firebase-adminsdk-fbsvc-2f5171bc60.json"
 DATABASE_URL = "https://dms-navi-default-rtdb.asia-southeast1.firebasedatabase.app"
 cred = credentials.Certificate(CREDENTIAL_PATH)
 firebase_admin.initialize_app(cred, {"databaseURL": DATABASE_URL})
