@@ -28,3 +28,4 @@ __pycache__/
 
 # Drivers 폴더 제외 (ioc 파일로 재생성 가능)
 **/Drivers/
+rpi5_navi/db/*.db
