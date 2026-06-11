@@ -1,4 +1,4 @@
-# 🤖 rpi5 — AI 추론 노드 (졸음 인식)
+# 🤖 rpi5_ai — AI 추론 노드 (졸음 인식)
 
 > RPi5 + Hailo-8 NPU 기반 실시간 얼굴 검출 · 랜드마크 · PERCLOS 졸음 판정  
 > YOLOv8-face + face_landmarks_lite 듀얼 NPU 파이프라인, UART 바이너리 송신
@@ -54,12 +54,29 @@ STM32 안전 제어 노드
 | 파라미터 | 값 | 설명 |
 |---|---|---|
 | 동적 임계값 기준 | 상위 10% EAR × 0.75 | 운전 초기 EAR 히스토리 기반 개인 적응 |
-| 보정 고정 임계값 | **0.223** | 데이터셋 1000장 기반 최적 임계값 탐색 결과 |
+| 보정 고정 임계값 | **0.223** | 데이터셋 1000장 기반 최적 임계값 (졸음 모드 fallback) |
 | 졸음 판정 지속 | **1.5초** | ~20프레임 @ 13 FPS (카메라 포함 기준) |
+| 복귀 조건 | 눈뜸 **10프레임 연속** | ~0.7초 @ 13 FPS |
 | 출력 상태 | 0 / 1 / 2 | 정상 / 주의 / 위험 |
 
-> 고정 임계값 0.223은 `dataset/` 의 1000장 데이터 기반으로 F1 79.5%를 기록한 최적값.  
-> 실제 시스템은 동적 임계값(상위 10% EAR × 0.75)을 기본으로 사용.
+### 졸음 모드 임계값 동결 (is_drowsy)
+
+동적 임계값의 구조적 결함을 발견하고 해결했다:
+
+```
+[문제] 눈을 오래 감으면 낮은 EAR이 히스토리에 누적
+       → 동적 임계값이 함께 하락 → 감은 눈도 '정상'으로 오판
+       → 졸음이 지속될수록 경고가 풀리는 치명적 결함
+
+[해결] 정상/졸음 2-모드 분리
+  정상 모드  : EAR 히스토리 누적 + 동적 임계값 (상위 10% × 0.75)
+  졸음 모드  : 누적 중단 + 진입 시점 임계값 동결 (frozen_threshold)
+              동결값 없으면 검증된 고정값 0.223 fallback
+  복귀       : frozen_threshold 초과 EAR 10프레임 연속 → 정상 모드 전환
+  안전 처리  : 졸음 중 얼굴 미검출(고개 떨굼 가능성) 시 경고 상태 유지
+```
+
+> 고정 임계값 0.223은 `dataset/` 1000장 기반 Recall 98.8% — 졸음 모드 고정 임계값의 유효성 검증.
 
 ---
 
@@ -154,8 +171,9 @@ UART_PORT        = "/dev/ttyAMA0"
 UART_BAUDRATE    = 115200
 FRAME_SYNC       = 0xAA
 EAR_RATIO        = 0.75             # 동적 임계값 비율 (상위 10% EAR × 0.75)
-EAR_THRESHOLD    = 0.223            # 고정 임계값 (데이터셋 보정값)
-PERCLOS_WINDOW_S = 1.5              # 졸음 판정 지속 시간 (초)
+FIXED_THRESHOLD  = 0.223            # 졸음 모드 fallback 고정 임계값 (Recall 98.8%)
+DROWSINESS_TIME  = 1.5              # 졸음 판정 지속 시간 (초)
+RECOVERY_FRAMES  = 10               # 졸음 → 정상 복귀 연속 눈뜸 프레임 수
 UART_PERIOD_MS   = 100
 
 YOLO_HEF = "models/yolov8n_face.hef"
@@ -176,7 +194,7 @@ LM_HEF   = "models/face_landmarks_lite.hef"
 ## 디렉토리 구조
 
 ```
-rpi5/
+rpi5_ai/
 ├── models/
 │   ├── yolov8n_face.hef
 │   └── face_landmarks_lite.hef
