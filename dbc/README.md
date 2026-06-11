@@ -41,13 +41,13 @@ Vector CANdb++ 표준 포맷으로 작성되어 CANoe, CANalyzer, cantools 등
 
 | CAN ID | 메시지 명 | 방향 | DLC | 주기 | 구분 | 설명 |
 |---|---|---|---|---|---|---|
-| `0x100` | `DMS_State` | STM32 → RPi5 네비 | 3 bytes | 100ms | **구현** | 졸음 상태 + EAR 값 |
-| `0x101` | `DMS_ACK` | RPi5 네비 → STM32 | 1 byte | 수신 시마다 | **구현** | 수신 확인 ACK |
+| `0x100` | `DMS_State` | STM32 → RPi5 네비 | 3 bytes | 100ms | **구현** | 졸음 상태 + AI 생존 + EAR 값 |
+| `0x101` | `DMS_ACK` | RPi5 네비 → STM32 | 1 byte | 수신 시마다 | **구현** | 수신 확인 ACK (핑퐁 검증 완료) |
+| `0x200` | `DMS_ECU_Heartbeat` | STM32 → RPi5 네비 | 1 byte | 500ms | **구현** | STM32 생존 카운터 (롤오버) |
 | `0x7DF` | `DMS_DTC` | STM32 → CAN Bus | 8 bytes | 이벤트 | **구현** | 고장 코드 (Heartbeat 단절) |
-| `0x200` | `DMS_ECU_Heartbeat` | STM32 → RPi5 네비 | 1 byte | 500ms | 예정 | STM32 생존 확인 |
 | `0x110` | `DMS_SystemStatus` | STM32 → RPi5 네비 | 3 bytes | 1000ms | 예정 | 시스템 헬스 상태 |
 | `0x120` | `DMS_Session` | STM32 → CAN Bus | 2 bytes | 이벤트 | 예정 | 주행 세션 시작·종료 |
-| `0x102` | `DMS_Driver_Response` | RPi5 네비 → STM32 | 1 byte | 이벤트 | 예정 | 운전자 경고 확인 여부 |
+| `0x102` | `DMS_Driver_Response` | RPi5 네비 → STM32 | 1 byte | 이벤트 | 예정 | 운전자 경고 확인 (STM32 수신 콜백 준비 완료) |
 
 ---
 
@@ -58,8 +58,8 @@ Vector CANdb++ 표준 포맷으로 작성되어 CANoe, CANalyzer, cantools 등
 | 시그널명 | 위치 | 길이 | 범위 | 단위 | 설명 |
 |---|---|---|---|---|---|
 | `DMS_DrowsyState` | Byte 0 | 8bit | 0–2 | — | 0=정상 / 1=주의 / 2=위험 |
-| `DMS_EAR_Scaled` | Byte 1 | 8bit | 0–100 | EAR×100 | EAR 값 (0.35 → 35) |
-| `DMS_SeqNum` | Byte 2 | 8bit | 0–255 | — | 프레임 순서 번호 (롤오버) |
+| `DMS_RPi_Alive` | Byte 1 | 8bit | 0–1 | — | AI 노드 생존 여부 (Watchdog 판정 결과) |
+| `DMS_EAR_Scaled` | Byte 2 | 8bit | 0–100 | EAR×100 | EAR 값 (0.21 → 21) |
 
 ### 0x101 — DMS_ACK
 
@@ -77,24 +77,20 @@ Vector CANdb++ 표준 포맷으로 작성되어 CANoe, CANalyzer, cantools 등
 
 > `0x7DF` — UDS(ISO 14229) 표준 진단 요청 ID 차용. 실차 진단 장비와 호환.
 
----
-
-## 시그널 정의 — 예정
-
 ### 0x200 — DMS_ECU_Heartbeat
 
-**추가 이유:** 현재 구조는 RPi5가 UART로 STM32에 Heartbeat를 보내 AI 노드 생존을 감시하지만,
-역방향이 없다. 네비 노드는 STM32가 다운됐는지 알 방법이 없어 0x100이 끊겼을 때
-"State=0 정상"인지 "STM32 다운"인지 구분할 수 없다. 0x200으로 대칭 감시를 완성한다.
+**추가 이유:** RPi5→STM32 단방향 감시의 역방향을 완성. 네비 노드가 "State=0 정상"과
+"STM32 다운"을 구분할 수 있게 한다.
 
 | 시그널명 | 위치 | 길이 | 범위 | 설명 |
 |---|---|---|---|---|
-| `STM32_HB_Count` | Byte 0 | 8bit | 0–255 | 롤오버 카운터 (500ms 주기 증가) |
+| `STM32_HB_Count` | Byte 0 | 8bit | 0–255 | 롤오버 카운터 (500ms 주기 증가, 0x100과 5:1 비율 실측 확인) |
 
-- 네비 노드가 1500ms 이상 미수신 시 → Firebase에 "STM32 이상" 이벤트 업로드
-- SQLite에 노드 단절 로그 기록
+> STM32 송신 구현·검증 완료. 네비 노드 측 타임아웃 감시(1500ms 미수신 → 배너·Firebase 이벤트)는 예정.
 
 ---
+
+## 시그널 정의 — 예정
 
 ### 0x110 — DMS_SystemStatus
 
@@ -190,6 +186,6 @@ dbc/
 ## 개발 참고 사항
 
 - DBC 수정 시 `../stm32/Core/Src/can_tx.c` 인코딩 로직과 반드시 동기화
-- DBC 수정 시 `../rpi_navi/flask_server/can_reader.py` 디코딩 로직도 업데이트
+- DBC 수정 시 `../rpi5_navi/flask_server/app.py` 의 can_reader_thread 디코딩 로직도 업데이트
 - 예정 메시지는 DBC에 정의만 해두고 미구현 상태로 유지 가능
 - cantools 설치: `pip install cantools python-can`
