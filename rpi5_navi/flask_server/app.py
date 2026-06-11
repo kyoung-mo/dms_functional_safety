@@ -17,22 +17,44 @@ def can_reader_thread():
     try:
         bus = can.interface.Bus(channel='can0', bustype='socketcan')
         for msg in bus:
-            if len(msg.data) < 2:
-                continue
-            driver_state = msg.data[0]
-            rpi_alive    = msg.data[1]
-            current_state = driver_state
-            lat = latest_gps.get("lat")
-            lon = latest_gps.get("lon")
-            socketio.emit("state_update", {
-                "state": driver_state,
-                "alive": rpi_alive,
-                "lat": lat,
-                "lon": lon
-            })
-            if driver_state >= 2:
-                save_event(driver_state, lat, lon)
-                save_event_firebase(driver_state, lat, lon)
+
+            # ── 0x100: 졸음 상태 ──
+            if msg.arbitration_id == 0x100:
+                if len(msg.data) < 2:
+                    continue
+                driver_state = msg.data[0]
+                rpi_alive    = msg.data[1]
+                current_state = driver_state
+
+                # [추가] 0x101 ACK 송신 — 수신 확인 응답
+                try:
+                    ack = can.Message(arbitration_id=0x101,
+                                      data=[0x01],
+                                      is_extended_id=False)
+                    bus.send(ack)
+                except can.CanError:
+                    pass   # ACK 실패는 치명적이지 않음, 본 처리 계속
+
+                lat = latest_gps.get("lat")
+                lon = latest_gps.get("lon")
+                socketio.emit("state_update", {
+                    "state": driver_state,
+                    "alive": rpi_alive,
+                    "lat": lat,
+                    "lon": lon
+                })
+                if driver_state >= 2:
+                    save_event(driver_state, lat, lon)
+                    save_event_firebase(driver_state, lat, lon)
+
+            # ── 0x7DF: DTC (STM32 Failsafe) ──
+            elif msg.arbitration_id == 0x7DF:
+                print(f"[DTC] Failsafe 수신: {msg.data.hex()}")
+                socketio.emit("dtc_alert", {"data": msg.data.hex()})
+
+            # ── 0x200: STM32 Heartbeat (현재는 무시, 예정 기능) ──
+            # elif msg.arbitration_id == 0x200: ...
+
     except Exception as e:
         print(f"[CAN ERROR] {e}")
 
