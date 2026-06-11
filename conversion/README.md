@@ -111,7 +111,7 @@ conversion/
 
 - DFC 3.33.1은 **Python 3.10** 환경에서만 정상 동작 (Native Linux / WSL)
 - `face_landmarks_lite` 변환 시 캘리브레이션 데이터는 `../dataset/calib_images/` 참조
-- 변환된 HEF 파일은 `../rpi5/models/`로 복사하여 사용
+- 변환된 HEF 파일은 `../rpi5_ai/models/`로 복사하여 사용
 - `conv22` 출력: 1404값 (468pts × 3, x/y/z in 0–192px 공간)
 - `conv25` 출력: confidence (sigmoid 내장 → 재적용 금지)
 
