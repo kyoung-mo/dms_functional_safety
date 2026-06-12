@@ -1,146 +1,130 @@
-<svg viewBox="0 0 800 940" xmlns="http://www.w3.org/2000/svg"
-     font-family="'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',Arial,sans-serif">
-<rect width="800" height="940" fill="white"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="1095" viewBox="0 0 840 1095" font-family="Noto Sans CJK KR, Malgun Gothic, sans-serif">
 <defs>
-  <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-    <path d="M0,1 L9,5 L0,9 z" fill="#444"/>
-  </marker>
-  <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-    <path d="M0,1 L9,5 L0,9 z" fill="#B71C1C"/>
-  </marker>
+<marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9Z" fill="#555"/></marker>
+<marker id="ahr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1L9 5L1 9Z" fill="#C0392B"/></marker>
 </defs>
+<rect width="840" height="1095" fill="#FFFFFF"/>
 
-<!-- Swim lanes -->
-<rect x="14" y="50" width="772" height="402" rx="10" fill="#E8F5E9" stroke="#2E7D32" stroke-width="1" stroke-dasharray="5 3"/>
-<text x="26" y="66" fill="#2E7D32" font-size="10" font-weight="500">RPi5 졸음 인식 노드 (Hailo-8 NPU)</text>
+<text x="420" y="26" text-anchor="middle" font-size="17" font-weight="700" fill="#222">DMS 시스템 전체 동작 흐름</text>
+<text x="420" y="44" text-anchor="middle" font-size="11" fill="#888">RPi5 졸음 인식 → STM32 안전 제어 → RPi5 네비·관제</text>
 
-<rect x="14" y="462" width="772" height="212" rx="10" fill="#FFF3E0" stroke="#E65100" stroke-width="1" stroke-dasharray="5 3"/>
-<text x="26" y="478" fill="#E65100" font-size="10" font-weight="500">STM32 안전 제어 노드 (FreeRTOS)</text>
+<!-- start pill -->
+<rect x="345" y="56" width="150" height="32" rx="16" fill="#3A3F44"/>
+<text x="420" y="77" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFF">시스템 시작</text>
+<line x1="420" y1="88" x2="420" y2="113" stroke="#555" stroke-width="1.5" marker-end="url(#ah)"/>
 
-<rect x="14" y="684" width="772" height="210" rx="10" fill="#E3F2FD" stroke="#1565C0" stroke-width="1" stroke-dasharray="5 3"/>
-<text x="26" y="700" fill="#1565C0" font-size="10" font-weight="500">RPi5 네비 노드 (MCP2515)</text>
+<!-- ===== Container 1: RPi5 ===== -->
+<rect x="40" y="100" width="770" height="508" rx="14" fill="#EAF6EC" stroke="#2E7D32" stroke-width="1.2" stroke-dasharray="6 4"/>
+<text x="56" y="122" font-size="12" font-weight="700" fill="#2E7D32">RPi5 졸음 인식 노드 (Hailo-8 NPU)</text>
 
-<!-- START -->
-<rect x="310" y="12" width="180" height="32" rx="16" fill="#333"/>
-<text x="400" y="33" text-anchor="middle" fill="white" font-size="13" font-weight="500">시스템 시작</text>
-<line x1="400" y1="44" x2="400" y2="62" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="320" y="130" width="200" height="46" rx="8" fill="#2E7D32"/>
+<text x="420" y="149" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFF">카메라 프레임 캡처</text>
+<text x="420" y="166" text-anchor="middle" font-size="9.5" fill="#C8E6C9">PiCamera2 · 640×480</text>
+<line x1="420" y1="176" x2="420" y2="199" stroke="#555" stroke-width="1.5" marker-end="url(#ah)"/>
 
-<!-- Camera capture -->
-<rect x="296" y="64" width="208" height="40" rx="6" fill="#2E7D32"/>
-<text x="400" y="81" text-anchor="middle" fill="white" font-size="12" font-weight="500">카메라 프레임 캡처</text>
-<text x="400" y="96" text-anchor="middle" fill="#C8E6C9" font-size="9">PiCamera2 · 640×480</text>
-<line x1="400" y1="104" x2="400" y2="130" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<polygon points="420,202 530,238 420,274 310,238" fill="#FFFFFF" stroke="#2E7D32" stroke-width="1.5"/>
+<text x="420" y="235" text-anchor="middle" font-size="12" font-weight="700" fill="#222">얼굴 감지?</text>
+<text x="420" y="251" text-anchor="middle" font-size="9.5" fill="#777">YOLOv8-face</text>
 
-<!-- Diamond: 얼굴 감지? center=(400,162), hw=110, hh=32 -->
-<polygon points="400,130 510,162 400,194 290,162" fill="white" stroke="#2E7D32" stroke-width="1.5"/>
-<text x="400" y="158" text-anchor="middle" fill="#222" font-size="11" font-weight="500">얼굴 감지?</text>
-<text x="400" y="173" text-anchor="middle" fill="#555" font-size="9">YOLOv8-face</text>
+<!-- No: State=0 side box -->
+<line x1="310" y1="238" x2="288" y2="238" stroke="#555" stroke-width="1.5" marker-end="url(#ah)"/>
+<text x="299" y="227" text-anchor="middle" font-size="10.5" font-weight="700" fill="#666">No</text>
+<rect x="170" y="220" width="115" height="36" rx="8" fill="#6E747B"/>
+<text x="227" y="243" text-anchor="middle" font-size="12" font-weight="700" fill="#FFF">State = 0</text>
+<path d="M227 256 V576 H318" fill="none" stroke="#888" stroke-width="1.4" marker-end="url(#ah)"/>
 
-<!-- No: left bypass line -->
-<line x1="290" y1="162" x2="190" y2="162" stroke="#444" stroke-width="1.5"/>
-<line x1="190" y1="162" x2="190" y2="422" stroke="#444" stroke-width="1.5"/>
-<line x1="190" y1="422" x2="294" y2="422" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
-<text x="236" y="154" text-anchor="middle" fill="#555" font-size="10">No</text>
-<rect x="120" y="200" width="100" height="30" rx="4" fill="#616161"/>
-<text x="170" y="220" text-anchor="middle" fill="white" font-size="11">State = 0</text>
+<!-- Yes down -->
+<line x1="420" y1="274" x2="420" y2="297" stroke="#555" stroke-width="1.5" marker-end="url(#ah)"/>
+<text x="430" y="290" font-size="10.5" font-weight="700" fill="#2E7D32">Yes</text>
 
-<!-- Yes: down -->
-<line x1="400" y1="194" x2="400" y2="220" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
-<text x="413" y="211" fill="#555" font-size="10">Yes</text>
+<rect x="300" y="300" width="240" height="58" rx="8" fill="#00897B"/>
+<text x="420" y="320" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFF">랜드마크 추출 · EAR 계산</text>
+<text x="420" y="336" text-anchor="middle" font-size="9.5" fill="#CFF3EE">face_landmarks_lite · 468pts</text>
+<text x="420" y="350" text-anchor="middle" font-size="9.5" fill="#CFF3EE">Eye Aspect Ratio (양쪽 눈 각 6점)</text>
+<line x1="420" y1="358" x2="420" y2="381" stroke="#555" stroke-width="1.5" marker-end="url(#ah)"/>
 
-<!-- Landmark + EAR -->
-<rect x="278" y="222" width="244" height="52" rx="6" fill="#1B8A6B"/>
-<text x="400" y="242" text-anchor="middle" fill="white" font-size="12" font-weight="500">랜드마크 추출 · EAR 계산</text>
-<text x="400" y="257" text-anchor="middle" fill="#A5D6A7" font-size="10">face_landmarks_lite · 468pts</text>
-<text x="400" y="269" text-anchor="middle" fill="#A5D6A7" font-size="9">Eye Aspect Ratio (양쪽 눈 각 6점)</text>
-<line x1="400" y1="274" x2="400" y2="300" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<polygon points="420,384 540,422 420,460 300,422" fill="#FFFFFF" stroke="#00897B" stroke-width="1.5"/>
+<text x="420" y="419" text-anchor="middle" font-size="12" font-weight="700" fill="#222">PERCLOS 졸음 판정</text>
+<text x="420" y="435" text-anchor="middle" font-size="9.5" fill="#777">동적 임계값 · 1.5초 지속</text>
 
-<!-- Diamond: PERCLOS 판정 center=(400,330), hw=115, hh=32 -->
-<polygon points="400,300 515,330 400,360 285,330" fill="white" stroke="#1B8A6B" stroke-width="1.5"/>
-<text x="400" y="326" text-anchor="middle" fill="#222" font-size="11" font-weight="500">PERCLOS 졸음 판정</text>
-<text x="400" y="341" text-anchor="middle" fill="#555" font-size="9">동적 임계값 · 1.5초 지속</text>
+<!-- 위험: State=2 side box -->
+<line x1="540" y1="422" x2="562" y2="422" stroke="#C0392B" stroke-width="1.5" marker-end="url(#ahr)"/>
+<text x="551" y="411" text-anchor="middle" font-size="10.5" font-weight="700" fill="#C0392B">위험</text>
+<rect x="565" y="404" width="115" height="36" rx="8" fill="#C0392B"/>
+<text x="622" y="427" text-anchor="middle" font-size="12" font-weight="700" fill="#FFF">State = 2</text>
+<path d="M622 440 V576 H552" fill="none" stroke="#C0392B" stroke-width="1.4" marker-end="url(#ahr)"/>
 
-<!-- State=0/1: left -->
-<line x1="285" y1="330" x2="215" y2="330" stroke="#444" stroke-width="1.5"/>
-<line x1="215" y1="330" x2="215" y2="422" stroke="#444" stroke-width="1.5"/>
-<line x1="215" y1="422" x2="294" y2="422" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
-<text x="248" y="322" text-anchor="middle" fill="#555" font-size="9">주의/정상</text>
-<rect x="148" y="360" width="104" height="30" rx="4" fill="#388E3C"/>
-<text x="200" y="380" text-anchor="middle" fill="white" font-size="11">State = 0/1</text>
+<!-- 주의/정상 down -->
+<line x1="420" y1="460" x2="420" y2="483" stroke="#555" stroke-width="1.5" marker-end="url(#ah)"/>
+<text x="430" y="476" font-size="10.5" font-weight="700" fill="#43A047">주의/정상</text>
 
-<!-- State=2: right -->
-<line x1="515" y1="330" x2="615" y2="330" stroke="#B71C1C" stroke-width="1.5"/>
-<line x1="615" y1="330" x2="615" y2="422" stroke="#B71C1C" stroke-width="1.5"/>
-<line x1="615" y1="422" x2="506" y2="422" stroke="#B71C1C" stroke-width="1.5" marker-end="url(#ar)"/>
-<text x="568" y="322" text-anchor="middle" fill="#B71C1C" font-size="9">위험</text>
-<rect x="564" y="360" width="100" height="30" rx="4" fill="#B71C1C"/>
-<text x="614" y="380" text-anchor="middle" fill="white" font-size="11">State = 2</text>
+<rect x="350" y="486" width="140" height="36" rx="8" fill="#43A047"/>
+<text x="420" y="509" text-anchor="middle" font-size="12" font-weight="700" fill="#FFF">State = 0/1</text>
+<line x1="420" y1="522" x2="420" y2="550" stroke="#555" stroke-width="1.5" marker-end="url(#ah)"/>
 
-<!-- UART TX (merge) -->
-<rect x="294" y="406" width="212" height="48" rx="6" fill="#1B5E20"/>
-<text x="400" y="425" text-anchor="middle" fill="white" font-size="12" font-weight="500">UART 바이너리 프레임 송신</text>
-<text x="400" y="441" text-anchor="middle" fill="#A5D6A7" font-size="9">[0xAA, State, EAR×100, Seq, CRC] · 100ms</text>
-<line x1="400" y1="454" x2="400" y2="474" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="290" y="553" width="260" height="46" rx="8" fill="#1B5E20"/>
+<text x="420" y="572" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFF">UART 바이너리 프레임 송신</text>
+<text x="420" y="589" text-anchor="middle" font-size="9" fill="#C8E6C9">[0xAA, State, EAR×100, Seq, CRC] · 100ms</text>
+<text x="700" y="580" text-anchor="middle" font-size="9.5" fill="#888">※ 매 프레임 반복</text>
 
-<!-- STM32: UART Rx -->
-<rect x="292" y="476" width="216" height="40" rx="6" fill="#BF360C"/>
-<text x="400" y="493" text-anchor="middle" fill="white" font-size="12" font-weight="500">STM32: UART 수신</text>
-<text x="400" y="508" text-anchor="middle" fill="#FFCCBC" font-size="9">상태머신 파싱 · Task Queue 전달</text>
-<line x1="400" y1="516" x2="400" y2="536" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<line x1="420" y1="599" x2="420" y2="646" stroke="#555" stroke-width="1.5" marker-end="url(#ah)"/>
 
-<!-- Diamond: HB 단절? center=(400,566), hw=110, hh=30 -->
-<polygon points="400,536 510,566 400,596 290,566" fill="white" stroke="#E65100" stroke-width="1.5"/>
-<text x="400" y="562" text-anchor="middle" fill="#222" font-size="11" font-weight="500">Heartbeat 단절?</text>
-<text x="400" y="577" text-anchor="middle" fill="#555" font-size="9">500ms 미수신</text>
+<!-- ===== Container 2: STM32 ===== -->
+<rect x="40" y="618" width="770" height="244" rx="14" fill="#FFF3E6" stroke="#E65100" stroke-width="1.2" stroke-dasharray="6 4"/>
+<text x="56" y="640" font-size="12" font-weight="700" fill="#D84315">STM32 안전 제어 노드 (FreeRTOS)</text>
 
-<!-- DTC: right -->
-<line x1="510" y1="566" x2="598" y2="566" stroke="#B71C1C" stroke-width="1.5" marker-end="url(#ar)"/>
-<text x="555" y="558" text-anchor="middle" fill="#B71C1C" font-size="9">단절</text>
-<rect x="596" y="548" width="162" height="42" rx="5" fill="#BF360C"/>
-<text x="677" y="566" text-anchor="middle" fill="white" font-size="11" font-weight="500">DTC 0x7DF 송출</text>
-<text x="677" y="582" text-anchor="middle" fill="#FFCCBC" font-size="9">Failsafe 진입 · LED 소등</text>
+<rect x="300" y="650" width="240" height="46" rx="8" fill="#D84315"/>
+<text x="420" y="669" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFF">STM32: UART 수신</text>
+<text x="420" y="686" text-anchor="middle" font-size="9.5" fill="#FBD9CC">상태머신 파싱 · Task Queue 전달</text>
+<line x1="420" y1="696" x2="420" y2="719" stroke="#555" stroke-width="1.5" marker-end="url(#ah)"/>
 
-<!-- Normal: down -->
-<line x1="400" y1="596" x2="400" y2="616" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
-<text x="412" y="610" fill="#555" font-size="10">정상</text>
+<polygon points="420,722 535,758 420,794 305,758" fill="#FFFFFF" stroke="#E65100" stroke-width="1.5"/>
+<text x="420" y="755" text-anchor="middle" font-size="12" font-weight="700" fill="#222">Heartbeat 단절?</text>
+<text x="420" y="771" text-anchor="middle" font-size="9.5" fill="#777">500ms 미수신</text>
 
-<!-- LED + CAN Tx -->
-<rect x="280" y="618" width="240" height="44" rx="6" fill="#E65100"/>
-<text x="400" y="636" text-anchor="middle" fill="white" font-size="12" font-weight="500">LED 경고 · CAN 0x100 송신</text>
-<text x="400" y="651" text-anchor="middle" fill="#FFE0B2" font-size="9">졸음 상태 + EAR → RPi5 네비 · 100ms</text>
-<line x1="400" y1="662" x2="400" y2="694" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
-<text x="414" y="681" fill="#555" font-size="9">CAN 0x100</text>
+<!-- 단절: DTC side box -->
+<line x1="535" y1="758" x2="557" y2="758" stroke="#C0392B" stroke-width="1.5" marker-end="url(#ahr)"/>
+<text x="546" y="747" text-anchor="middle" font-size="10.5" font-weight="700" fill="#C0392B">단절</text>
+<rect x="560" y="735" width="195" height="46" rx="8" fill="#BF360C"/>
+<text x="657" y="754" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFF">DTC 0x7DF 송출</text>
+<text x="657" y="771" text-anchor="middle" font-size="9.5" fill="#FBD9CC">Failsafe 진입 · LED 소등</text>
 
-<!-- Navi: CAN Rx -->
-<rect x="286" y="696" width="228" height="40" rx="6" fill="#1565C0"/>
-<text x="400" y="713" text-anchor="middle" fill="white" font-size="12" font-weight="500">RPi5 네비: CAN 0x100 수신</text>
-<text x="400" y="728" text-anchor="middle" fill="#BBDEFB" font-size="9">MCP2515 · SocketCAN · cantools</text>
-<line x1="400" y1="736" x2="400" y2="758" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
+<!-- 정상 down -->
+<line x1="420" y1="794" x2="420" y2="817" stroke="#555" stroke-width="1.5" marker-end="url(#ah)"/>
+<text x="430" y="810" font-size="10.5" font-weight="700" fill="#EF6C00">정상</text>
 
-<!-- Diamond: State==2? center=(400,788), hw=105, hh=30 -->
-<polygon points="400,758 505,788 400,818 295,788" fill="white" stroke="#1565C0" stroke-width="1.5"/>
-<text x="400" y="784" text-anchor="middle" fill="#222" font-size="11" font-weight="500">State == 2?</text>
-<text x="400" y="799" text-anchor="middle" fill="#555" font-size="9">위험 판정</text>
+<rect x="290" y="820" width="260" height="46" rx="8" fill="#EF6C00"/>
+<text x="420" y="839" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFF">LED 경고 · CAN 0x100 송신</text>
+<text x="420" y="856" text-anchor="middle" font-size="9.5" fill="#FFE6CC">졸음 상태 + EAR → RPi5 네비 · 100ms</text>
 
-<!-- No: left → map -->
-<line x1="295" y1="788" x2="210" y2="788" stroke="#444" stroke-width="1.5" marker-end="url(#a)"/>
-<text x="251" y="781" text-anchor="middle" fill="#555" font-size="10">No</text>
-<rect x="52" y="770" width="158" height="42" rx="5" fill="#1565C0"/>
-<text x="131" y="788" text-anchor="middle" fill="white" font-size="11" font-weight="500">카카오맵 경로</text>
-<text x="131" y="803" text-anchor="middle" fill="#BBDEFB" font-size="9">실시간 업데이트</text>
+<line x1="420" y1="866" x2="420" y2="908" stroke="#555" stroke-width="1.5" marker-end="url(#ah)"/>
+<text x="463" y="876" font-size="10" font-weight="700" fill="#1565C0">CAN 0x100</text>
 
-<!-- Yes: right → Firebase -->
-<line x1="505" y1="788" x2="590" y2="788" stroke="#B71C1C" stroke-width="1.5" marker-end="url(#ar)"/>
-<text x="549" y="780" text-anchor="middle" fill="#B71C1C" font-size="10">Yes</text>
-<rect x="588" y="762" width="174" height="54" rx="5" fill="#7A3000"/>
-<text x="675" y="780" text-anchor="middle" fill="white" font-size="11" font-weight="500">Firebase 이벤트 저장</text>
-<text x="675" y="795" text-anchor="middle" fill="#FFCC80" font-size="9">GPS · 시각 · driver_id · session_id</text>
-<text x="675" y="809" text-anchor="middle" fill="#FFCC80" font-size="9">카카오맵 졸음 마커 표시</text>
+<!-- ===== Container 3: navi ===== -->
+<rect x="40" y="880" width="770" height="190" rx="14" fill="#E9F2FC" stroke="#1565C0" stroke-width="1.2" stroke-dasharray="6 4"/>
+<text x="56" y="902" font-size="12" font-weight="700" fill="#1565C0">RPi5 네비 노드 (MCP2515)</text>
 
-<!-- Loop (dashed) -->
-<line x1="131" y1="812" x2="131" y2="886" stroke="#CCC" stroke-width="1" stroke-dasharray="4 3"/>
-<line x1="131" y1="886" x2="32" y2="886" stroke="#CCC" stroke-width="1" stroke-dasharray="4 3"/>
-<line x1="32" y1="886" x2="32" y2="84" stroke="#CCC" stroke-width="1" stroke-dasharray="4 3"/>
-<line x1="32" y1="84" x2="294" y2="84" stroke="#CCC" stroke-width="1" stroke-dasharray="4 3" marker-end="url(#a)"/>
-<text x="44" y="490" fill="#CCC" font-size="9" transform="rotate(-90,44,490)">다음 프레임 (루프)</text>
+<rect x="290" y="912" width="260" height="46" rx="8" fill="#1565C0"/>
+<text x="420" y="931" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFF">RPi5 네비: CAN 0x100 수신</text>
+<text x="420" y="948" text-anchor="middle" font-size="9.5" fill="#CFE3F8">MCP2515 · SocketCAN · cantools</text>
+<line x1="420" y1="958" x2="420" y2="981" stroke="#555" stroke-width="1.5" marker-end="url(#ah)"/>
+
+<polygon points="420,984 520,1018 420,1052 320,1018" fill="#FFFFFF" stroke="#1565C0" stroke-width="1.5"/>
+<text x="420" y="1015" text-anchor="middle" font-size="12" font-weight="700" fill="#222">State == 2?</text>
+<text x="420" y="1031" text-anchor="middle" font-size="9.5" fill="#777">위험 판정</text>
+
+<!-- No: left -->
+<line x1="320" y1="1018" x2="298" y2="1018" stroke="#555" stroke-width="1.5" marker-end="url(#ah)"/>
+<text x="309" y="1007" text-anchor="middle" font-size="10.5" font-weight="700" fill="#666">No</text>
+<rect x="130" y="995" width="165" height="46" rx="8" fill="#1976D2"/>
+<text x="212" y="1014" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFF">카카오맵 경로</text>
+<text x="212" y="1031" text-anchor="middle" font-size="9.5" fill="#CFE3F8">실시간 업데이트</text>
+
+<!-- Yes: right -->
+<line x1="520" y1="1018" x2="542" y2="1018" stroke="#C0392B" stroke-width="1.5" marker-end="url(#ahr)"/>
+<text x="531" y="1007" text-anchor="middle" font-size="10.5" font-weight="700" fill="#C0392B">Yes</text>
+<rect x="545" y="989" width="230" height="58" rx="8" fill="#5D4037"/>
+<text x="660" y="1009" text-anchor="middle" font-size="12.5" font-weight="700" fill="#FFF">Firebase 이벤트 저장</text>
+<text x="660" y="1025" text-anchor="middle" font-size="9" fill="#E5D6CF">GPS · 시각 · driver_id · session_id</text>
+<text x="660" y="1039" text-anchor="middle" font-size="9" fill="#E5D6CF">카카오맵 졸음 마커 표시</text>
 </svg>
