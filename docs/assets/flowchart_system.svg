@@ -54,9 +54,9 @@
 <text x="622" y="427" text-anchor="middle" font-size="12" font-weight="700" fill="#FFF">State = 2</text>
 <path d="M622 440 V576 H552" fill="none" stroke="#C0392B" stroke-width="1.4" marker-end="url(#ahr)"/>
 
-<!-- 주의/정상 down -->
+<!-- 정상/주의 down -->
 <line x1="420" y1="460" x2="420" y2="483" stroke="#555" stroke-width="1.5" marker-end="url(#ah)"/>
-<text x="430" y="476" font-size="10.5" font-weight="700" fill="#43A047">주의/정상</text>
+<text x="430" y="476" font-size="10.5" font-weight="700" fill="#43A047">정상/주의</text>
 
 <rect x="350" y="486" width="140" height="36" rx="8" fill="#43A047"/>
 <text x="420" y="509" text-anchor="middle" font-size="12" font-weight="700" fill="#FFF">State = 0/1</text>
