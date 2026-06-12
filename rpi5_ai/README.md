@@ -78,6 +78,10 @@ STM32 안전 제어 노드
 
 > 고정 임계값 0.223은 `dataset/` 1000장 기반 Recall 98.8% — 졸음 모드 고정 임계값의 유효성 검증.
 
+### Flow chart (PERCLOS 알고리즘)
+
+<img width="904" height="747" alt="image" src="https://github.com/user-attachments/assets/452965df-2993-4717-8138-9f9d6a2e2efd" />
+
 ---
 
 ## 🔬 NPU 벤치마크
