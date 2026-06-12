@@ -60,6 +60,7 @@ AI가 다운돼도 STM32는 독립적으로 Heartbeat를 감시하고 CAN DTC를
 
 <img width="1089" height="893" alt="image" src="https://github.com/user-attachments/assets/8c185ec4-411a-42d2-86a1-8812afad9142" />
 
+---
 
 | 노드 | 보드 | 역할 | 설계 원칙 |
 |---|---|---|---|
@@ -84,6 +85,12 @@ AI가 다운돼도 STM32는 독립적으로 Heartbeat를 감시하고 CAN DTC를
 | `0x102` | `DMS_Driver_Response` | RPi5 네비 → STM32 | 이벤트 | 예정 | 운전자 경고 확인 — STM32 수신 콜백은 준비 완료, 네비 송신·알림 완화 로직 예정 |
 
 > `0x7DF`: UDS(ISO 14229) 표준 진단 요청 ID 차용 → 실차 진단 장비 호환.
+
+---
+
+## 📊 Flow chart
+
+<img width="833" height="1101" alt="image" src="https://github.com/user-attachments/assets/86b5fe0f-0591-4b97-ae2c-e93935d6a1cf" />
 
 ---
 
